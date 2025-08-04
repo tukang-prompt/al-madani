@@ -16,22 +16,26 @@ function formatCurrency(amount: number) {
 }
 
 export default function DashboardClient() {
-  const { transactions, categories, loading } = useData();
+  const { transactions, categories, settings, loading } = useData();
 
   const stats = useMemo(() => {
-    return transactions.reduce(
+    const openingBalance = settings?.openingBalance || 0;
+    const result = transactions.reduce(
       (acc, tx) => {
         if (tx.type === "income") {
           acc.income += tx.amount;
         } else {
           acc.expense += tx.amount;
         }
-        acc.balance = acc.income - acc.expense;
         return acc;
       },
-      { income: 0, expense: 0, balance: 0 }
+      { income: 0, expense: 0 }
     );
-  }, [transactions]);
+    
+    const balance = openingBalance + result.income - result.expense;
+
+    return { ...result, balance };
+  }, [transactions, settings]);
 
   const recentTransactions = useMemo(() => {
     return transactions
@@ -65,7 +69,7 @@ export default function DashboardClient() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-            <CardTitle className="text-xs font-medium">Saldo</CardTitle>
+            <CardTitle className="text-xs font-medium">Saldo Akhir</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="p-3 pt-0">
