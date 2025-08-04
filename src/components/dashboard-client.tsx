@@ -93,13 +93,11 @@ export default function DashboardClient() {
       doc.addImage(logoBase64, 'PNG', margin, 15, 20, 20, undefined, 'FAST');
       
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("PENGURUS", margin + 25, 18);
       doc.setFontSize(12);
-      doc.text(`MASJID ${settings.mosqueName.toUpperCase()}`, margin + 25, 24);
+      doc.text(`MASJID ${settings.mosqueName.toUpperCase()}`, pageWidth / 2, 22, { align: "center" });
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.text(settings.mosqueAddress, margin + 25, 30);
+      doc.setFontSize(10);
+      doc.text(settings.mosqueAddress, pageWidth / 2, 28, { align: "center" });
       
       doc.setLineWidth(0.5);
       doc.line(margin, 40, pageWidth - margin, 40);
@@ -399,3 +397,5 @@ export default function DashboardClient() {
       </Card>
     </div>
   );
+}
+    
