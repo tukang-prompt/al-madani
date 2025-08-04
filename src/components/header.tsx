@@ -1,5 +1,3 @@
-import { SidebarTrigger } from "./ui/sidebar";
-
 type HeaderProps = {
   title: string;
   children?: React.ReactNode;
@@ -7,10 +5,10 @@ type HeaderProps = {
 
 export function Header({ title, children }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
-      <SidebarTrigger className="md:hidden" />
-      <h1 className="flex-1 text-2xl font-bold font-headline tracking-tight">{title}</h1>
-      <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-center border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+      <div className="flex-1" />
+      <h1 className="text-lg font-bold font-headline tracking-tight text-center">{title}</h1>
+      <div className="flex flex-1 items-center justify-end gap-2">
         {children}
       </div>
     </header>

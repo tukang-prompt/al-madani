@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { MockDataProvider } from '@/hooks/use-mock-data';
-import { SideNav } from '@/components/side-nav';
+import { BottomNav } from '@/components/bottom-nav';
 
 export const metadata: Metadata = {
   title: 'Al Madani Finance Tracker',
@@ -25,16 +24,14 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-body antialiased h-full">
+      <body className="font-body antialiased h-full bg-muted/20">
         <MockDataProvider>
-          <SidebarProvider>
-            <div className="flex h-full">
-              <SideNav />
-              <SidebarInset className="flex-1 flex flex-col h-full">
+          <div className="relative flex h-full w-full max-w-md mx-auto flex-col bg-background shadow-lg">
+            <div className="flex-1 overflow-y-auto">
                 {children}
-              </SidebarInset>
             </div>
-          </SidebarProvider>
+            <BottomNav />
+          </div>
         </MockDataProvider>
         <Toaster />
       </body>
