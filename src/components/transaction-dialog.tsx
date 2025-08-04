@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useMockData } from "@/hooks/use-mock-data";
 import type { Transaction, TransactionType } from "@/lib/types";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Tipe harus dipilih" }),
@@ -60,36 +60,30 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+  });
+  
+  const transactionType = form.watch("type");
+
+  const resetForm = useCallback(() => {
+    form.reset({
       type: transaction?.type || "income",
       amount: transaction?.amount || 0,
       date: transaction ? new Date(transaction.date) : new Date(),
       description: transaction?.description || "",
       categoryId: transaction?.category.id || "",
-    },
-  });
+    });
+  }, [transaction, form]);
 
   useEffect(() => {
-    if (transaction) {
-      form.reset({
-        type: transaction.type,
-        amount: transaction.amount,
-        date: new Date(transaction.date),
-        description: transaction.description,
-        categoryId: transaction.category.id,
-      });
-    } else {
-      form.reset({
-        type: "income",
-        amount: 0,
-        date: new Date(),
-        description: "",
-        categoryId: "",
-      });
+    if (open) {
+      resetForm();
     }
-  }, [transaction, form, open]);
+  }, [transaction, open, resetForm]);
+  
+  useEffect(() => {
+    form.setValue('categoryId', '');
+  }, [transactionType, form]);
 
-  const transactionType = form.watch("type");
   const filteredCategories = categories.filter((c) => c.type === transactionType);
 
   function onSubmit(data: TransactionFormValues) {
@@ -103,7 +97,6 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
       addTransaction(formattedData);
     }
     onOpenChange(false);
-    form.reset();
   }
 
   return (
@@ -166,7 +159,7 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Kategori</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Pilih kategori" />

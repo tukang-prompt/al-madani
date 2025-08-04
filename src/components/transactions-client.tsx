@@ -71,13 +71,17 @@ export default function TransactionsClient() {
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   
-  const [isNewDialogOpen, setIsNewDialogOpen] = React.useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | undefined>(undefined);
 
+  const handleAddNew = () => {
+    setSelectedTransaction(undefined);
+    setIsDialogOpen(true);
+  };
+  
   const handleEdit = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
-    setIsEditDialogOpen(true);
+    setIsDialogOpen(true);
   };
   
   const columns: ColumnDef<Transaction>[] = [
@@ -208,7 +212,7 @@ export default function TransactionsClient() {
           className="max-w-sm"
         />
         <div className="ml-auto flex gap-2">
-            <Button onClick={() => { setSelectedTransaction(undefined); setIsNewDialogOpen(true); }}>
+            <Button onClick={handleAddNew}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Tambah Transaksi
             </Button>
@@ -284,8 +288,11 @@ export default function TransactionsClient() {
           </Button>
         </div>
       </div>
-      <TransactionDialog open={isNewDialogOpen} onOpenChange={setIsNewDialogOpen} />
-      <TransactionDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} transaction={selectedTransaction} />
+      <TransactionDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen} 
+        transaction={selectedTransaction} 
+      />
     </div>
   );
 }
