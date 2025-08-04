@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo } from "react";
@@ -48,32 +49,32 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-            <CardTitle className="text-xs font-medium">Pemasukan</CardTitle>
+            <CardTitle className="text-sm font-medium">Pemasukan</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            {loading ? <Skeleton className="h-6 w-3/4" /> : <div className="text-base font-bold">{formatCurrency(stats.income)}</div>}
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(stats.income)}</div>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-            <CardTitle className="text-xs font-medium">Pengeluaran</CardTitle>
+            <CardTitle className="text-sm font-medium">Pengeluaran</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            {loading ? <Skeleton className="h-6 w-3/4" /> : <div className="text-base font-bold">{formatCurrency(stats.expense)}</div>}
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(stats.expense)}</div>}
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
-            <CardTitle className="text-xs font-medium">Saldo Akhir</CardTitle>
+            <CardTitle className="text-sm font-medium">Saldo Akhir</CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            {loading ? <Skeleton className="h-6 w-3/4" /> : <div className="text-base font-bold">{formatCurrency(stats.balance)}</div>}
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(stats.balance)}</div>}
           </CardContent>
         </Card>
       </div>
