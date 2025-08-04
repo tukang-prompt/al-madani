@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { MockDataProvider } from '@/hooks/use-mock-data';
-import { BottomNav } from '@/components/bottom-nav';
+import { DataProvider } from '@/hooks/use-data';
+import { AuthProvider } from '@/hooks/use-auth';
+import AuthGuard from '@/components/auth-guard';
 
 export const metadata: Metadata = {
   title: 'Al Madani Finance Tracker',
@@ -25,14 +26,13 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased h-full bg-muted/20">
-        <MockDataProvider>
-          <div className="relative flex h-full w-full max-w-md mx-auto flex-col bg-background shadow-lg">
-            <div className="flex-1 overflow-y-auto">
-                {children}
-            </div>
-            <BottomNav />
-          </div>
-        </MockDataProvider>
+        <AuthProvider>
+          <DataProvider>
+            <AuthGuard>
+              {children}
+            </AuthGuard>
+          </DataProvider>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>

@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMockData } from "@/hooks/use-mock-data";
+import { useData } from "@/hooks/use-data";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import type { Category, TransactionType } from "@/lib/types";
 import { CategoryDialog } from "./category-dialog";
@@ -25,9 +25,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import { Skeleton } from "./ui/skeleton";
 
 export default function CategoriesClient() {
-  const { categories, deleteCategory } = useMockData();
+  const { categories, deleteCategory, loading } = useData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | undefined>(undefined);
   const [dialogType, setDialogType] = useState<TransactionType>("income");
@@ -69,12 +70,17 @@ export default function CategoriesClient() {
           Tambah Kategori
         </Button>
         <div className="rounded-md border">
-          {list.length > 0 ? list.map((cat) => (
+          {loading ? (
+            <div className="p-4 space-y-3">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ) : list.length > 0 ? list.map((cat) => (
             <div
               key={cat.id}
               className="flex items-center p-3 pr-4 border-b last:border-b-0"
             >
-              <cat.icon className="mr-3 h-5 w-5 text-muted-foreground" />
               <span className="flex-1 font-medium">{cat.name}</span>
               <div className="flex gap-2">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(cat)}>

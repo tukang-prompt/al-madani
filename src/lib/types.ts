@@ -1,19 +1,20 @@
-import type { LucideIcon } from "lucide-react";
-
 export type TransactionType = 'income' | 'expense';
 
 export interface Category {
   id: string;
   name: string;
   type: TransactionType;
-  icon: LucideIcon;
 }
 
 export interface Transaction {
   id: string;
   type: TransactionType;
   amount: number;
-  date: string; // ISO string for simplicity
+  date: Date;
   description: string;
-  category: Category;
+  categoryId: string;
+  userId: string;
 }
+
+export type TransactionData = Omit<Transaction, 'id' | 'userId'>;
+export type CategoryData = Omit<Category, 'id'>;

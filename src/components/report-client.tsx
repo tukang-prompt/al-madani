@@ -1,6 +1,6 @@
 "use client";
 
-import { useMockData } from "@/hooks/use-mock-data";
+import { useData } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { Skeleton } from "./ui/skeleton";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -20,14 +21,16 @@ function formatCurrency(amount: number) {
 }
 
 export default function ReportClient() {
-  const { transactions } = useMockData();
+  const { transactions, categories, loading } = useData();
+  const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'Lainnya';
+
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
     const tableData = transactions.map(tx => [
-        format(new Date(tx.date), "d MMM yyyy", { locale: id }),
+        format(tx.date, "d MMM yyyy", { locale: id }),
         tx.description,
-        tx.category.name,
+        getCategoryName(tx.categoryId),
         tx.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
         { content: formatCurrency(tx.amount), styles: { halign: 'right' } }
     ]);
@@ -65,7 +68,7 @@ export default function ReportClient() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="font-headline">Ringkasan Laporan</CardTitle>
-          <Button onClick={handleExportPDF} size="sm">
+          <Button onClick={handleExportPDF} size="sm" disabled={loading || transactions.length === 0}>
             <Download className="mr-2 h-4 w-4" />
             Unduh PDF
           </Button>
@@ -86,12 +89,18 @@ export default function ReportClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions.length > 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ) : transactions.length > 0 ? (
                   transactions.map((tx) => (
                     <TableRow key={tx.id}>
-                      <TableCell>{format(new Date(tx.date), "d MMM yyyy", { locale: id })}</TableCell>
+                      <TableCell>{format(tx.date, "d MMM yyyy", { locale: id })}</TableCell>
                       <TableCell>{tx.description}</TableCell>
-                      <TableCell>{tx.category.name}</TableCell>
+                      <TableCell>{getCategoryName(tx.categoryId)}</TableCell>
                       <TableCell>
                         <Badge variant={tx.type === "income" ? "default" : "destructive"}>
                           {tx.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}

@@ -35,7 +35,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useMockData } from "@/hooks/use-mock-data";
+import { useData } from "@/hooks/use-data";
 import type { Transaction, TransactionType } from "@/lib/types";
 import { useEffect, useCallback } from "react";
 
@@ -56,7 +56,7 @@ interface TransactionDialogProps {
 }
 
 export function TransactionDialog({ open, onOpenChange, transaction }: TransactionDialogProps) {
-  const { categories, addTransaction, updateTransaction } = useMockData();
+  const { categories, addTransaction, updateTransaction } = useData();
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
@@ -68,9 +68,9 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
     form.reset({
       type: transaction?.type || "income",
       amount: transaction?.amount || 0,
-      date: transaction ? new Date(transaction.date) : new Date(),
+      date: transaction ? transaction.date : new Date(),
       description: transaction?.description || "",
-      categoryId: transaction?.category.id || "",
+      categoryId: transaction?.categoryId || "",
     });
   }, [transaction, form]);
 
@@ -87,14 +87,10 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
   const filteredCategories = categories.filter((c) => c.type === transactionType);
 
   function onSubmit(data: TransactionFormValues) {
-    const formattedData = {
-        ...data,
-        date: data.date.toISOString(),
-    }
     if (transaction) {
-      updateTransaction(transaction.id, formattedData);
+      updateTransaction(transaction.id, data);
     } else {
-      addTransaction(formattedData);
+      addTransaction(data);
     }
     onOpenChange(false);
   }

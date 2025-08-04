@@ -38,7 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useMockData } from "@/hooks/use-mock-data";
+import { useData } from "@/hooks/use-data";
 import type { Transaction } from "@/lib/types";
 import { TransactionDialog } from "./transaction-dialog";
 import { format } from "date-fns";
@@ -64,7 +64,7 @@ function formatCurrency(amount: number) {
 }
 
 export default function TransactionsClient() {
-  const { transactions, deleteTransaction } = useMockData();
+  const { transactions, categories, deleteTransaction, loading } = useData();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -72,6 +72,8 @@ export default function TransactionsClient() {
   
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | undefined>(undefined);
+
+  const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'Lainnya';
 
   const handleAddNew = () => {
     setSelectedTransaction(undefined);
@@ -95,7 +97,7 @@ export default function TransactionsClient() {
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => <div>{format(new Date(row.getValue("date")), "d MMM yyyy", { locale: id })}</div>,
+      cell: ({ row }) => <div>{format(row.getValue("date"), "d MMM yyyy", { locale: id })}</div>,
     },
     {
       accessorKey: "description",
@@ -103,15 +105,15 @@ export default function TransactionsClient() {
       cell: ({ row }) => <div>{row.getValue("description")}</div>,
     },
     {
-      accessorKey: "category",
+      accessorKey: "categoryId",
       header: "Kategori",
       cell: ({ row }) => {
-        const category = row.getValue("category") as Transaction["category"];
-        return <div>{category.name}</div>;
+        const categoryId = row.getValue("categoryId") as string;
+        return <div>{getCategoryName(categoryId)}</div>;
       },
       filterFn: (row, id, value) => {
-        const category = row.getValue("category") as Transaction["category"];
-        return value.includes(category.name);
+        const categoryId = row.getValue("categoryId") as string;
+        return value.includes(getCategoryName(categoryId));
       }
     },
     {
@@ -260,7 +262,7 @@ export default function TransactionsClient() {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  Tidak ada hasil.
+                  {loading ? "Memuat data..." : "Tidak ada hasil."}
                 </TableCell>
               </TableRow>
             )}
