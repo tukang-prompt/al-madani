@@ -125,30 +125,42 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
       let incomeTxFound = false;
       incomeCategories.forEach(cat => {
           const categorySubCategories = subCategories.filter(sc => sc.parentId === cat.id);
-          const categoryTransactions = sortedTransactions.filter(tx => categorySubCategories.some(sc => sc.id === tx.subCategoryId));
           
-          if(categoryTransactions.length > 0) {
-            tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
+          if(categorySubCategories.length === 0) return;
 
-            categoryTransactions.forEach(tx => {
-                const subCategory = subCategories.find(sc => sc.id === tx.subCategoryId);
-                const description = `${subCategory?.name || ''}${tx.description && tx.description !== format(tx.date, "EEEE, d MMMM yyyy", { locale: id }) ? ` (${tx.description})` : ''}`;
+          tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
 
-                tableBody.push([
-                    '-',
-                    description,
-                    { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
-                    '-',
-                    ''
-                ]);
-                totalIncome += tx.amount;
-                incomeTxFound = true;
-            });
-          }
+          categorySubCategories.forEach(sc => {
+              const subCategoryTransactions = sortedTransactions.filter(tx => tx.subCategoryId === sc.id);
+
+              if (subCategoryTransactions.length > 0) {
+                  subCategoryTransactions.forEach(tx => {
+                       const description = `${sc.name}${tx.description && tx.description !== format(tx.date, "EEEE, d MMMM yyyy", { locale: id }) ? ` (${tx.description})` : ''}`;
+                       tableBody.push([
+                          '-',
+                          description,
+                          { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
+                          '-',
+                          ''
+                      ]);
+                      totalIncome += tx.amount;
+                      incomeTxFound = true;
+                  });
+              } else {
+                  // Show subcategory even if no transactions
+                  tableBody.push([
+                      '-',
+                      sc.name,
+                      { content: formatCurrencyPDF(0), styles: { halign: 'right' } },
+                      '-',
+                      ''
+                  ]);
+              }
+          });
       });
-       if (!incomeTxFound) {
+      if (!incomeTxFound && incomeCategories.every(cat => subCategories.filter(sc => sc.parentId === cat.id).length === 0)) {
            tableBody.push([
-              { content: 'Tidak ada pemasukan periode ini', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
+              { content: 'Tidak ada sub-kategori pemasukan', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
       }
       
@@ -265,5 +277,3 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
       alert("Gagal membuat laporan PDF. Pastikan file /logo.png ada di folder public.");
     }
 };
-
-    
