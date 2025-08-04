@@ -47,17 +47,18 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
 
     try {
       const logoBase64 = await getImageAsBase64('/logo.png');
-      doc.addImage(logoBase64, 'PNG', margin, 15, 20, 20, undefined, 'FAST');
+      // Compact header
+      doc.addImage(logoBase64, 'PNG', margin, 10, 20, 20, undefined, 'FAST');
       
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.text(settings.mosqueName.toUpperCase(), pageWidth / 2, 22, { align: "center" });
+      doc.text(settings.mosqueName.toUpperCase(), pageWidth / 2, 15, { align: "center" });
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      doc.text(settings.mosqueAddress, pageWidth / 2, 28, { align: "center" });
+      doc.text(settings.mosqueAddress, pageWidth / 2, 21, { align: "center" });
       
       doc.setLineWidth(0.5);
-      doc.line(margin, 40, pageWidth - margin, 40);
+      doc.line(margin, 32, pageWidth - margin, 32);
 
       const now = new Date();
       let startDate, endDate, reportTitle, balanceTitle;
@@ -87,7 +88,7 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.text(reportTitle, pageWidth / 2, 50, { align: "center" });
+      doc.text(reportTitle, pageWidth / 2, 42, { align: "center" });
 
       const periodTransactions = transactions.filter(tx => tx.date >= startDate && tx.date <= endDate);
       const previousTransactions = transactions.filter(tx => tx.date < startDate);
@@ -216,7 +217,7 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
 
 
       (doc as any).autoTable({
-          startY: 58,
+          startY: 50,
           head: [['#', 'Transaksi', 'Pemasukan (Rp)', 'Pengeluaran (Rp)', 'Saldo (Rp)']],
           body: tableBody,
           theme: 'grid',
@@ -259,16 +260,16 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
       doc.setFont("helvetica", "normal");
       doc.text(`Bandung, ${todayFormatted}`, pageWidth - margin, finalY, { align: 'right' });
 
-      doc.text("Bendahara DKM", margin, finalY + 21);
-      doc.text("Ketua DKM", pageWidth - margin, finalY + 21, { align: 'right' });
+      doc.text("Bendahara DKM", margin, finalY + 15);
+      doc.text("Ketua DKM", pageWidth - margin, finalY + 15, { align: 'right' });
       
       doc.setFont("helvetica", "bold");
-      doc.text(settings.treasurerName, margin, finalY + 42);
-      doc.text(settings.chairmanName, pageWidth - margin, finalY + 42, { align: 'right' });
+      doc.text(settings.treasurerName, margin, finalY + 30);
+      doc.text(settings.chairmanName, pageWidth - margin, finalY + 30, { align: 'right' });
       
       doc.setLineWidth(0.2);
-      doc.line(margin, finalY + 43, margin + 40, finalY + 43);
-      doc.line(pageWidth - margin - 40, finalY + 43, pageWidth - margin, finalY + 43);
+      doc.line(margin, finalY + 31, margin + 40, finalY + 31);
+      doc.line(pageWidth - margin - 40, finalY + 31, pageWidth - margin, finalY + 31);
 
       doc.save(`laporan-${reportType}-${settings.mosqueName.toLowerCase().replace(/\s/g, '-')}-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     
