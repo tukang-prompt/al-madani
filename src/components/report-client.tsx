@@ -54,7 +54,7 @@ export default function ReportClient() {
     try {
       // 1. Header Laporan (Logo & Kop Surat)
       const logoBase64 = await getImageAsBase64('/logo.png');
-      doc.addImage(logoBase64, 'PNG', margin, 15, 25, 25);
+      doc.addImage(logoBase64, 'PNG', margin, 15, 25, 25, undefined, 'FAST');
       
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
