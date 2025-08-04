@@ -10,6 +10,7 @@ import "jspdf-autotable";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Skeleton } from "./ui/skeleton";
+import type { Category } from "@/lib/types";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -17,7 +18,6 @@ function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-// Helper function to load image and convert to Base64
 const getImageAsBase64 = (url: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -42,7 +42,7 @@ const getImageAsBase64 = (url: string): Promise<string> => {
 
 
 export default function ReportClient() {
-  const { transactions, settings, loading } = useData();
+  const { transactions, categories, settings, loading } = useData();
 
   const handleExportPDF = async () => {
     if (!settings) return;
@@ -52,7 +52,6 @@ export default function ReportClient() {
     const margin = 14;
 
     try {
-      // 1. Header Laporan (Logo & Kop Surat)
       const logoBase64 = await getImageAsBase64('/logo.png');
       doc.addImage(logoBase64, 'PNG', margin, 15, 25, 25, undefined, 'FAST');
       
@@ -68,22 +67,22 @@ export default function ReportClient() {
       doc.setLineWidth(0.5);
       doc.line(margin, 42, pageWidth - margin, 42);
 
-      // 2. Judul Laporan
       const currentMonthYear = format(new Date(), "MMMM yyyy", { locale: id });
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text(`Laporan Bulan ${currentMonthYear}`, pageWidth / 2, 52, { align: "center" });
 
-      // 3. Tabel Transaksi
       const sortedTransactions = transactions.slice().sort((a, b) => a.date.getTime() - b.date.getTime());
-      const incomeTransactions = sortedTransactions.filter(tx => tx.type === 'income');
-      const expenseTransactions = sortedTransactions.filter(tx => tx.type === 'expense');
+      
+      const incomeCategories = categories.filter(c => c.type === 'income');
+      const expenseCategories = categories.filter(c => c.type === 'expense');
 
       let runningBalance = 0;
+      let totalIncome = 0;
+      let totalExpense = 0;
       
       const tableBody = [] as any[];
 
-      // Saldo Awal (diasumsikan 0 jika tidak ada data sebelumnya)
       tableBody.push([
           { content: 'Saldo', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
@@ -99,19 +98,34 @@ export default function ReportClient() {
       tableBody.push([
           { content: 'Pemasukan', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
-      if (incomeTransactions.length > 0) {
-          incomeTransactions.forEach((tx, index) => {
-              runningBalance += tx.amount;
-              tableBody.push([
-                  `${index + 1}`,
-                  tx.description,
-                  { content: formatCurrency(tx.amount), styles: { halign: 'right' } },
-                  '-',
-                  { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
-              ]);
-          });
-      } else {
-          tableBody.push([
+      
+      let incomeAdded = false;
+      incomeCategories.forEach(cat => {
+          const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
+          
+          if (categoryTransactions.length > 0) {
+              incomeAdded = true;
+              tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold' } }]);
+              
+              categoryTransactions.forEach((tx, index) => {
+                  runningBalance += tx.amount;
+                  totalIncome += tx.amount;
+                  tableBody.push([
+                      `${index + 1}`,
+                      tx.description || '-',
+                      { content: formatCurrency(tx.amount), styles: { halign: 'right' } },
+                      '-',
+                      { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
+                  ]);
+              });
+          } else {
+              tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold' } }]);
+              tableBody.push([{ content: 'Tidak ada transaksi', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }]);
+          }
+      });
+      
+      if (!incomeAdded && incomeCategories.length === 0) {
+         tableBody.push([
               { content: 'Tidak ada pemasukan', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
       }
@@ -120,26 +134,42 @@ export default function ReportClient() {
       tableBody.push([
           { content: 'Pengeluaran', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
-      if (expenseTransactions.length > 0) {
-          expenseTransactions.forEach((tx, index) => {
-              runningBalance -= tx.amount;
-              tableBody.push([
-                  `${index + 1}`,
-                  tx.description,
-                  '-',
-                  { content: formatCurrency(tx.amount), styles: { halign: 'right' } },
-                  { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
-              ]);
-          });
+
+      if(expenseCategories.length > 0) {
+        let expenseAdded = false;
+        expenseCategories.forEach(cat => {
+            const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
+
+            if (categoryTransactions.length > 0) {
+                expenseAdded = true;
+                tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold' } }]);
+
+                categoryTransactions.forEach((tx, index) => {
+                    runningBalance -= tx.amount;
+                    totalExpense += tx.amount;
+                    tableBody.push([
+                        `${index + 1}`,
+                        tx.description || '-',
+                        '-',
+                        { content: formatCurrency(tx.amount), styles: { halign: 'right' } },
+                        { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
+                    ]);
+                });
+            }
+        });
+
+        if (!expenseAdded) {
+             tableBody.push([
+                { content: 'Tidak ada pengeluaran', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
+            ]);
+        }
       } else {
            tableBody.push([
               { content: 'Tidak ada pengeluaran', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
       }
 
-      // Total
-      const totalIncome = incomeTransactions.reduce((sum, tx) => sum + tx.amount, 0);
-      const totalExpense = expenseTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+
       tableBody.push([
           { content: '', colSpan: 1, styles: { borderBottom: 'none' } },
           { content: `Pemasukan/Pengeluaran hingga ${format(new Date(), "d MMMM yyyy", { locale: id })}`, styles: { fontStyle: 'bold', halign: 'right' } },
@@ -170,14 +200,16 @@ export default function ReportClient() {
               4: { halign: 'right' },
           },
           didParseCell: function(data: any) {
-              if (data.row.raw[0].content === 'Saldo' || data.row.raw[0].content === 'Pemasukan' || data.row.raw[0].content === 'Pengeluaran') {
-                data.cell.styles.fillColor = '#f0f0f0';
+              const row = data.row.raw;
+              if (row[0].colSpan === 5) {
                 data.cell.styles.fontStyle = 'bold';
+                if (row[0].content === 'Pemasukan' || row[0].content === 'Pengeluaran' || row[0].content === 'Saldo') {
+                    data.cell.styles.fillColor = '#f0f0f0';
+                }
               }
           }
       });
       
-      // 4. Tanda Tangan
       const finalY = (doc as any).lastAutoTable.finalY + 15;
       
       const todayFormatted = format(new Date(), "d MMMM yyyy", { locale: id });
@@ -193,14 +225,13 @@ export default function ReportClient() {
       doc.text(settings.chairmanName, pageWidth - margin, finalY + 28, { align: 'right' });
       
       doc.setLineWidth(0.2);
-      doc.line(margin, finalY + 29, margin + 40, finalY + 29); // Line for treasurer
-      doc.line(pageWidth - margin - 40, finalY + 29, pageWidth - margin, finalY + 29); // Line for chairman
+      doc.line(margin, finalY + 29, margin + 40, finalY + 29);
+      doc.line(pageWidth - margin - 40, finalY + 29, pageWidth - margin, finalY + 29);
 
       doc.save(`laporan-keuangan-${settings.mosqueName.toLowerCase().replace(/\s/g, '-')}-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     
     } catch (error) {
       console.error("Gagal membuat PDF:", error);
-      // Ideally, show a toast to the user
       alert("Gagal membuat laporan PDF. Pastikan file /logo.png ada di folder public.");
     }
   };
@@ -235,4 +266,5 @@ export default function ReportClient() {
       </Card>
     </div>
   );
-}
+
+    
