@@ -77,7 +77,7 @@ export default function ReportClient() {
       const incomeCategories = categories.filter(c => c.type === 'income');
       const expenseCategories = categories.filter(c => c.type === 'expense');
 
-      let runningBalance = 0;
+      let runningBalance = settings.openingBalance || 0;
       let totalIncome = 0;
       let totalExpense = 0;
       
@@ -99,30 +99,30 @@ export default function ReportClient() {
           { content: 'Pemasukan', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
       
-      if (incomeCategories.length > 0) {
-        incomeCategories.forEach(cat => {
-            const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
-            
-            tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
+      let incomeAdded = false;
+      incomeCategories.forEach(cat => {
+          const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
+          tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
 
-            if (categoryTransactions.length > 0) {
-                categoryTransactions.forEach((tx, index) => {
-                    runningBalance += tx.amount;
-                    totalIncome += tx.amount;
-                    tableBody.push([
-                        `${index + 1}`,
-                        tx.description || '-',
-                        { content: formatCurrency(tx.amount), styles: { halign: 'right' } },
-                        '-',
-                        { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
-                    ]);
-                });
-            } else {
-                tableBody.push([{ content: 'Tidak ada transaksi', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }]);
-            }
-        });
-      } else {
-         tableBody.push([
+          if (categoryTransactions.length > 0) {
+              incomeAdded = true;
+              categoryTransactions.forEach((tx, index) => {
+                  runningBalance += tx.amount;
+                  totalIncome += tx.amount;
+                  tableBody.push([
+                      `${index + 1}`,
+                      tx.description || '-',
+                      { content: formatCurrency(tx.amount), styles: { halign: 'right' } },
+                      '-',
+                      { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
+                  ]);
+              });
+          } else {
+              tableBody.push([{ content: 'Tidak ada transaksi', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }]);
+          }
+      });
+      if (incomeCategories.length === 0) {
+           tableBody.push([
               { content: 'Tidak ada kategori pemasukan', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
       }
@@ -169,7 +169,7 @@ export default function ReportClient() {
 
       tableBody.push([
           { content: '', colSpan: 1, styles: { borderBottom: 'none' } },
-          { content: `Pemasukan/Pengeluaran hingga ${format(new Date(), "d MMMM yyyy", { locale: id })}`, styles: { fontStyle: 'bold', halign: 'right' } },
+          { content: `Total Pemasukan/Pengeluaran`, styles: { fontStyle: 'bold', halign: 'right' } },
           { content: formatCurrency(totalIncome), styles: { fontStyle: 'bold', halign: 'right' } },
           { content: formatCurrency(totalExpense), styles: { fontStyle: 'bold', halign: 'right' } },
           { content: formatCurrency(totalIncome-totalExpense), styles: { fontStyle: 'bold', halign: 'right' } },
@@ -184,24 +184,26 @@ export default function ReportClient() {
 
       (doc as any).autoTable({
           startY: 60,
-          head: [['#', 'Transaksi', 'Pemasukan', 'Pengeluaran', 'Saldo']],
+          head: [['#', 'Transaksi', 'Pemasukan (Rp)', 'Pengeluaran (Rp)', 'Saldo (Rp)']],
           body: tableBody,
           theme: 'grid',
           headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: 'bold', halign: 'center' },
           styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5 },
           columnStyles: {
               0: { cellWidth: 10, halign: 'center' },
-              1: { cellWidth: 70 },
+              1: { cellWidth: 60 },
               2: { halign: 'right' },
               3: { halign: 'right' },
               4: { halign: 'right' },
           },
           didParseCell: function(data: any) {
               const row = data.row.raw;
-              if (row[0].colSpan === 5) {
+              if (row[0].colSpan === 5 && typeof row[0] === 'object') {
                 data.cell.styles.fontStyle = 'bold';
-                if (row[0].content === 'Pemasukan' || row[0].content === 'Pengeluaran' || row[0].content === 'Saldo') {
+                if (['Pemasukan', 'Pengeluaran', 'Saldo'].includes(row[0].content)) {
                     data.cell.styles.fillColor = '#f0f0f0';
+                } else {
+                    data.cell.styles.halign = 'left';
                 }
               }
           }
@@ -265,3 +267,4 @@ export default function ReportClient() {
   );
 
     
+

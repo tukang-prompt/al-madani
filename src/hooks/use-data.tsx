@@ -80,13 +80,18 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     
     const unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
         if(doc.exists()){
-            setSettings(doc.data() as Settings);
+            const data = doc.data() as Settings;
+            setSettings({
+                ...data,
+                openingBalance: data.openingBalance || 0,
+            });
         } else {
             setSettings({
                 mosqueName: "DKM Al-Madani",
                 mosqueAddress: "Jl. Raya Teknologi No. 1, Desa Canggih, Kecamatan Modern, Kota Digital",
                 chairmanName: "Bapak H. Abdullah",
                 treasurerName: "Bapak H. Muhammad",
+                openingBalance: 0,
             });
         }
     }, (error) => {

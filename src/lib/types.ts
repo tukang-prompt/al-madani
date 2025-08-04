@@ -23,6 +23,7 @@ export interface Settings {
   mosqueAddress: string;
   chairmanName: string;
   treasurerName: string;
+  openingBalance: number;
 }
 
 export type TransactionData = Omit<Transaction, 'id' | 'userId'>;

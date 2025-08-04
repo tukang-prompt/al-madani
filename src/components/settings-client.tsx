@@ -31,6 +31,7 @@ const formSchema = z.object({
   mosqueAddress: z.string().min(1, "Alamat mesjid harus diisi"),
   chairmanName: z.string().min(1, "Nama ketua DKM harus diisi"),
   treasurerName: z.string().min(1, "Nama bendahara harus diisi"),
+  openingBalance: z.coerce.number().min(0, "Saldo awal tidak boleh negatif"),
 });
 
 type SettingsFormValues = z.infer<typeof formSchema>;
@@ -45,6 +46,7 @@ export default function SettingsClient() {
       mosqueAddress: "",
       chairmanName: "",
       treasurerName: "",
+      openingBalance: 0,
     },
   });
 
@@ -70,6 +72,7 @@ export default function SettingsClient() {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-9 w-24 ml-auto" />
             </CardContent>
         </Card>
@@ -79,14 +82,30 @@ export default function SettingsClient() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Identitas Masjid</CardTitle>
+        <CardTitle className="font-headline">Pengaturan Aplikasi</CardTitle>
         <CardDescription>
-          Informasi ini akan digunakan pada kop surat laporan PDF.
+          Informasi ini akan digunakan pada kop surat laporan PDF dan perhitungan saldo awal.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+             <FormField
+              control={form.control}
+              name="openingBalance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Saldo Awal (Rp)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="0" {...field} />
+                  </FormControl>
+                   <FormDescription>
+                    Saldo sisa dari periode sebelumnya. Akan menjadi titik awal perhitungan laporan.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="mosqueName"
