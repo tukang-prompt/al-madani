@@ -10,6 +10,8 @@ import "jspdf-autotable";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Skeleton } from "./ui/skeleton";
+import ReactDOMServer from "react-dom/server";
+import { Logo } from "./logo";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -20,26 +22,20 @@ function formatCurrency(amount: number) {
 export default function ReportClient() {
   const { transactions, settings, loading } = useData();
   
+  const getLogoAsBase64 = () => {
+    const logoString = ReactDOMServer.renderToString(<Logo width="100" height="100" stroke="#26736C" strokeWidth="1.5" />);
+    return 'data:image/svg+xml;base64,' + btoa(logoString);
+  }
+
   const handleExportPDF = () => {
     if (!settings) return;
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 14;
 
     // 1. Header Laporan (Logo & Kop Surat)
-    const logoBase64 = 'data:image/svg+xml;base64,' + btoa(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="#26736C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 12a8 8 0 0 1 8-8 8 8 0 0 1 8 8v8H4v-8z" />
-        <path d="M12 4V2" />
-        <path d="M18 12h2" />
-        <path d="M4 12H2" />
-        <path d="M10 12v8" />
-        <path d="M14 12v8" />
-        <path d="M8 20h8" />
-      </svg>
-    `);
+    const logoBase64 = getLogoAsBase64();
     doc.addImage(logoBase64, 'SVG', margin, 15, 25, 25);
     
     doc.setFont("helvetica", "bold");
@@ -164,24 +160,23 @@ export default function ReportClient() {
     });
     
     // 4. Tanda Tangan
-    const finalY = (doc as any).lastAutoTable.finalY || pageHeight - 70;
-    const signatureY = finalY + 15;
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
     
     const todayFormatted = format(new Date(), "d MMMM yyyy", { locale: id });
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Bandung, ${todayFormatted}`, pageWidth - margin, signatureY, { align: 'right' });
+    doc.text(`Bandung, ${todayFormatted}`, pageWidth - margin, finalY, { align: 'right' });
 
-    doc.text("Bendahara DKM", margin, signatureY + 7);
-    doc.text("Ketua DKM", pageWidth - margin, signatureY + 7, { align: 'right' });
+    doc.text("Bendahara DKM", margin, finalY + 7);
+    doc.text("Ketua DKM", pageWidth - margin, finalY + 7, { align: 'right' });
     
     doc.setFont("helvetica", "bold");
-    doc.text(settings.treasurerName, margin, signatureY + 28);
-    doc.text(settings.chairmanName, pageWidth - margin, signatureY + 28, { align: 'right' });
+    doc.text(settings.treasurerName, margin, finalY + 28);
+    doc.text(settings.chairmanName, pageWidth - margin, finalY + 28, { align: 'right' });
     
     doc.setLineWidth(0.2);
-    doc.line(margin, signatureY + 29, margin + 40, signatureY + 29); // Line for treasurer
-    doc.line(pageWidth - margin - 40, signatureY + 29, pageWidth - margin, signatureY + 29); // Line for chairman
+    doc.line(margin, finalY + 29, margin + 40, finalY + 29); // Line for treasurer
+    doc.line(pageWidth - margin - 40, finalY + 29, pageWidth - margin, finalY + 29); // Line for chairman
 
     doc.save(`laporan-keuangan-${settings.mosqueName.toLowerCase().replace(/\s/g, '-')}-${format(new Date(), "yyyy-MM-dd")}.pdf`);
   };
@@ -217,5 +212,3 @@ export default function ReportClient() {
     </div>
   );
 }
-
-    
