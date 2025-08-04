@@ -60,6 +60,13 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      type: "income",
+      amount: 0,
+      date: new Date(),
+      description: "",
+      categoryId: "",
+    }
   });
   
   const transactionType = form.watch("type");
@@ -81,14 +88,17 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
   }, [transaction, open, resetForm]);
   
   useEffect(() => {
-    form.setValue('categoryId', '');
-  }, [transactionType, form]);
+    if(open) {
+        form.setValue('categoryId', '');
+    }
+  }, [transactionType, form, open]);
 
   const filteredCategories = categories.filter((c) => c.type === transactionType);
 
   function onSubmit(data: TransactionFormValues) {
     const payload = {
       ...data,
+      amount: Number(String(data.amount).replace(/[^0-9]/g, '')),
       description: data.description || "",
     };
     if (transaction) {
@@ -98,6 +108,19 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
     }
     onOpenChange(false);
   }
+  
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>, field: any) => {
+      const rawValue = e.target.value;
+      const numericValue = rawValue.replace(/[^0-9]/g, '');
+      if (numericValue === '') {
+        field.onChange(0);
+        return;
+      }
+      const formattedValue = new Intl.NumberFormat('id-ID').format(Number(numericValue));
+      e.target.value = formattedValue;
+      field.onChange(Number(numericValue));
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,7 +142,7 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                       className="flex space-x-4"
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -147,7 +170,13 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
                 <FormItem>
                   <FormLabel>Jumlah (Rp)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="50000" {...field} />
+                    <Input 
+                      type="text" 
+                      placeholder="50.000" 
+                      {...field}
+                      onChange={(e) => handleAmountChange(e, field)}
+                      value={field.value > 0 ? new Intl.NumberFormat('id-ID').format(field.value) : ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -193,7 +222,7 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
                             !field.value && "text-muted-foreground"
                           )}
                         >
-                          {field.value ? format(field.value, "PPP") : <span>Pilih tanggal</span>}
+                          {field.value ? format(field.value, "PPP", {locale: id}) : <span>Pilih tanggal</span>}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>

@@ -58,8 +58,25 @@ export default function SettingsClient() {
   }, [settings, form]);
 
   function onSubmit(data: SettingsFormValues) {
-    updateSettings(data);
+    const payload = {
+      ...data,
+      openingBalance: Number(String(data.openingBalance).replace(/[^0-9]/g, '')),
+    };
+    updateSettings(payload);
   }
+  
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>, field: any) => {
+      const rawValue = e.target.value;
+      const numericValue = rawValue.replace(/[^0-9]/g, '');
+      if (numericValue === '') {
+        field.onChange(0);
+        return;
+      }
+      const formattedValue = new Intl.NumberFormat('id-ID').format(Number(numericValue));
+      e.target.value = formattedValue;
+      field.onChange(Number(numericValue));
+  };
+
 
   if (loading) {
     return (
@@ -98,7 +115,13 @@ export default function SettingsClient() {
                 <FormItem>
                   <FormLabel>Saldo Awal (Rp)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="0" {...field} />
+                    <Input 
+                        type="text" 
+                        placeholder="0" 
+                        {...field}
+                        onChange={(e) => handleAmountChange(e, field)}
+                        value={field.value > 0 ? new Intl.NumberFormat('id-ID').format(field.value) : ''}
+                    />
                   </FormControl>
                    <FormDescription>
                     Saldo sisa dari periode sebelumnya. Akan menjadi titik awal perhitungan laporan.
