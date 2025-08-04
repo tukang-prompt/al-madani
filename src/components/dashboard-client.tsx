@@ -10,7 +10,7 @@ import type { Transaction } from "@/lib/types";
 import { Button } from "./ui/button";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subDays, addDays } from "date-fns";
 import { id } from "date-fns/locale";
 
 function formatCurrency(amount: number) {
@@ -81,7 +81,7 @@ export default function DashboardClient() {
 
   const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'Lainnya';
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (reportType: 'weekly' | 'monthly') => {
     if (!settings) return;
 
     const doc = new jsPDF();
@@ -104,43 +104,55 @@ export default function DashboardClient() {
       doc.setLineWidth(0.5);
       doc.line(margin, 42, pageWidth - margin, 42);
 
-      const currentMonthYear = format(new Date(), "MMMM yyyy", { locale: id });
+      const now = new Date();
+      let startDate, endDate, reportTitle, balanceTitle;
+
+      if (reportType === 'monthly') {
+        startDate = startOfMonth(now);
+        endDate = endOfMonth(now);
+        reportTitle = `Laporan Bulan ${format(now, "MMMM yyyy", { locale: id })}`;
+        
+        const prevMonthEnd = subDays(startDate, 1);
+        balanceTitle = `Saldo s/d ${format(prevMonthEnd, "d MMMM yyyy", { locale: id })}`;
+
+      } else { // weekly
+        const lastFriday = startOfWeek(now, { weekStartsOn: 5 });
+        startDate = lastFriday.getDay() > new Date().getDay() ? subDays(lastFriday, 7) : lastFriday;
+        endDate = addDays(startDate, 6);
+        reportTitle = `Laporan Mingguan (${format(startDate, "d MMM", { locale: id })} - ${format(endDate, "d MMM yyyy", { locale: id })})`;
+        
+        const prevThursday = subDays(startDate, 1);
+        balanceTitle = `Saldo s/d Kamis, ${format(prevThursday, "d MMMM yyyy", { locale: id })}`;
+      }
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.text(`Laporan Bulan ${currentMonthYear}`, pageWidth / 2, 52, { align: "center" });
+      doc.text(reportTitle, pageWidth / 2, 52, { align: "center" });
 
-      const sortedTransactions = transactions.slice().sort((a, b) => a.date.getTime() - b.date.getTime());
+      const periodTransactions = transactions.filter(tx => tx.date >= startDate && tx.date <= endDate);
+      const previousTransactions = transactions.filter(tx => tx.date < startDate);
+
+      let runningBalance = settings.openingBalance;
+      previousTransactions.forEach(tx => {
+          runningBalance += tx.type === 'income' ? tx.amount : -tx.amount;
+      });
+      
+      const sortedTransactions = periodTransactions.slice().sort((a, b) => a.date.getTime() - b.date.getTime());
       
       const incomeCategories = categories.filter(c => c.type === 'income');
       const expenseCategories = categories.filter(c => c.type === 'expense');
 
-      let runningBalance = settings.openingBalance || 0;
       let totalIncome = 0;
       let totalExpense = 0;
       
       const tableBody = [] as any[];
-
-      const getPreviousFriday = (date = new Date()) => {
-          const previous = new Date(date.getTime());
-          const dayOfWeek = date.getDay(); // 0 (Sun) to 6 (Sat)
-          const daysToSubtract = (dayOfWeek + 7 - 5) % 7; // Days to subtract to get to last Friday
-          if(daysToSubtract === 0 && date.getDay() === 5) { // if today is Friday
-             previous.setDate(date.getDate() - 7);
-          } else {
-             previous.setDate(date.getDate() - daysToSubtract);
-          }
-          return previous;
-      }
-      
-      const lastFriday = getPreviousFriday();
-      const lastFridayText = `Saldo per Jumat, ${format(lastFriday, "d MMMM yyyy", { locale: id })}`;
 
       tableBody.push([
           { content: 'Saldo', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
       tableBody.push([
           '1',
-          lastFridayText,
+          balanceTitle,
           '-',
           '-',
           { content: formatCurrencyPDF(runningBalance), styles: { halign: 'right' } }
@@ -152,64 +164,53 @@ export default function DashboardClient() {
       
       incomeCategories.forEach(cat => {
           const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
-          tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
-
           if (categoryTransactions.length > 0) {
-              categoryTransactions.forEach((tx, index) => {
-                  runningBalance += tx.amount;
-                  totalIncome += tx.amount;
-                  tableBody.push([
-                      `${index + 1}`,
-                      tx.description || '-',
-                      { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
-                      '-',
-                      { content: formatCurrencyPDF(runningBalance), styles: { halign: 'right' } }
-                  ]);
-              });
-          } else {
-              tableBody.push([{ content: 'Tidak ada transaksi', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }]);
+            tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
+            categoryTransactions.forEach((tx, index) => {
+                runningBalance += tx.amount;
+                totalIncome += tx.amount;
+                tableBody.push([
+                    `${index + 1}`,
+                    tx.description || '-',
+                    { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
+                    '-',
+                    { content: formatCurrencyPDF(runningBalance), styles: { halign: 'right' } }
+                ]);
+            });
           }
       });
-      if (incomeCategories.length === 0) {
+      if (sortedTransactions.filter(tx => tx.type === 'income').length === 0) {
            tableBody.push([
-              { content: 'Tidak ada kategori pemasukan', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
+              { content: 'Tidak ada pemasukan periode ini', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
       }
       
       tableBody.push([
           { content: 'Pengeluaran', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
-
-      if(expenseCategories.length > 0) {
-        expenseCategories.forEach(cat => {
-            const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
-            tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
-
-            if (categoryTransactions.length > 0) {
-                categoryTransactions.forEach((tx, index) => {
-                    runningBalance -= tx.amount;
-                    totalExpense += tx.amount;
-                    tableBody.push([
-                        `${index + 1}`,
-                        tx.description || '-',
-                        '-',
-                        { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
-                        { content: formatCurrencyPDF(runningBalance), styles: { halign: 'right' } }
-                    ]);
-                });
-            } else {
-                 tableBody.push([
-                    { content: 'Tidak ada transaksi', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
-                ]);
-            }
-        });
-
-      } else {
+      
+      expenseCategories.forEach(cat => {
+          const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
+           if (categoryTransactions.length > 0) {
+              tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
+              categoryTransactions.forEach((tx, index) => {
+                  runningBalance -= tx.amount;
+                  totalExpense += tx.amount;
+                  tableBody.push([
+                      `${index + 1}`,
+                      tx.description || '-',
+                      '-',
+                      { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
+                      { content: formatCurrencyPDF(runningBalance), styles: { halign: 'right' } }
+                  ]);
+              });
+           }
+      });
+      if (sortedTransactions.filter(tx => tx.type === 'expense').length === 0) {
            tableBody.push([
-              { content: 'Tidak ada kategori pengeluaran', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
+              { content: 'Tidak ada pengeluaran periode ini', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
       }
-
 
       tableBody.push([
           { content: '', colSpan: 1, styles: { borderBottom: 'none' } },
@@ -271,7 +272,7 @@ export default function DashboardClient() {
       doc.line(margin, finalY + 29, margin + 40, finalY + 29);
       doc.line(pageWidth - margin - 40, finalY + 29, pageWidth - margin, finalY + 29);
 
-      doc.save(`laporan-keuangan-${settings.mosqueName.toLowerCase().replace(/\s/g, '-')}-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+      doc.save(`laporan-${reportType}-${settings.mosqueName.toLowerCase().replace(/\s/g, '-')}-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     
     } catch (error) {
       console.error("Gagal membuat PDF:", error);
@@ -286,13 +287,17 @@ export default function DashboardClient() {
         <CardHeader>
           <CardTitle className="font-headline">Unduh Laporan PDF</CardTitle>
            <CardDescription>
-            Tekan tombol di bawah untuk mengunduh laporan keuangan dalam format PDF.
+            Pilih jenis laporan keuangan yang ingin diunduh dalam format PDF.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button onClick={handleExportPDF} size="sm" disabled={loading || transactions.length === 0}>
+        <CardContent className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={() => handleExportPDF('weekly')} size="sm" disabled={loading || transactions.length === 0}>
             <Download className="mr-2 h-4 w-4" />
-            Unduh Laporan
+            Unduh Mingguan
+          </Button>
+          <Button onClick={() => handleExportPDF('monthly')} size="sm" disabled={loading || transactions.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Unduh Bulanan
           </Button>
         </CardContent>
       </Card>
@@ -365,5 +370,5 @@ export default function DashboardClient() {
       </Card>
     </div>
   );
-}
 
+    
