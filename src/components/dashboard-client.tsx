@@ -90,19 +90,19 @@ export default function DashboardClient() {
 
     try {
       const logoBase64 = await getImageAsBase64('/logo.png');
-      doc.addImage(logoBase64, 'PNG', margin, 15, 25, 25, undefined, 'FAST');
+      doc.addImage(logoBase64, 'PNG', margin, 15, 20, 20, undefined, 'FAST');
       
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.text("PENGURUS", margin + 30, 20);
-      doc.setFontSize(14);
-      doc.text(`MASJID ${settings.mosqueName.toUpperCase()}`, margin + 30, 26);
+      doc.setFontSize(10);
+      doc.text("PENGURUS", margin + 25, 18);
+      doc.setFontSize(12);
+      doc.text(`MASJID ${settings.mosqueName.toUpperCase()}`, margin + 25, 24);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(settings.mosqueAddress, margin + 30, 32);
+      doc.setFontSize(8);
+      doc.text(settings.mosqueAddress, margin + 25, 30);
       
       doc.setLineWidth(0.5);
-      doc.line(margin, 42, pageWidth - margin, 42);
+      doc.line(margin, 40, pageWidth - margin, 40);
 
       const now = new Date();
       let startDate, endDate, reportTitle, balanceTitle;
@@ -116,7 +116,11 @@ export default function DashboardClient() {
         balanceTitle = `Saldo s/d ${format(prevMonthEnd, "d MMMM yyyy", { locale: id })}`;
 
       } else { // weekly
-        startDate = startOfWeek(now, { weekStartsOn: 5 }); // The most recent Friday
+        const dayOfWeek = now.getDay(); // Sunday = 0, Friday = 5
+        const daysSinceLastFriday = (dayOfWeek + 7 - 5) % 7;
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - daysSinceLastFriday);
+        
         endDate = addDays(startDate, 6); // The upcoming Thursday
         reportTitle = `Laporan Mingguan (${format(startDate, "d MMM", { locale: id })} - ${format(endDate, "d MMM yyyy", { locale: id })})`;
         
@@ -126,7 +130,7 @@ export default function DashboardClient() {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.text(reportTitle, pageWidth / 2, 52, { align: "center" });
+      doc.text(reportTitle, pageWidth / 2, 50, { align: "center" });
 
       const periodTransactions = transactions.filter(tx => tx.date >= startDate && tx.date <= endDate);
       const previousTransactions = transactions.filter(tx => tx.date < startDate);
@@ -227,12 +231,12 @@ export default function DashboardClient() {
 
 
       (doc as any).autoTable({
-          startY: 60,
+          startY: 58,
           head: [['#', 'Transaksi', 'Pemasukan (Rp)', 'Pengeluaran (Rp)', 'Saldo (Rp)']],
           body: tableBody,
           theme: 'grid',
-          headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: 'bold', halign: 'center' },
-          styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5 },
+          headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 9 },
+          styles: { font: "helvetica", fontSize: 8, cellPadding: 2 },
           columnStyles: {
               0: { cellWidth: 10, halign: 'center' },
               1: { cellWidth: 60 },
