@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp, orderBy } from 'firebase/firestore';
 import type { Transaction, Category, TransactionData, CategoryData } from '@/lib/types';
-import { useAuth } from './use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from './use-toast';
 
 interface DataContextType {
