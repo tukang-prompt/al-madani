@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -64,7 +65,7 @@ function formatCurrency(amount: number) {
 }
 
 export default function TransactionsClient() {
-  const { transactions, categories, deleteTransaction, loading } = useData();
+  const { transactions, categories, subCategories, deleteTransaction, loading } = useData();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -73,7 +74,13 @@ export default function TransactionsClient() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | undefined>(undefined);
 
-  const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'Lainnya';
+  const getSubCategoryName = (id: string) => subCategories.find(sc => sc.id === id)?.name || 'Lainnya';
+  const getCategoryNameFromSub = (subId: string) => {
+    const subCategory = subCategories.find(sc => sc.id === subId);
+    if (!subCategory) return 'Lainnya';
+    return categories.find(c => c.id === subCategory.parentId)?.name || 'Lainnya';
+  }
+
 
   const handleAddNew = () => {
     setSelectedTransaction(undefined);
@@ -105,15 +112,24 @@ export default function TransactionsClient() {
       cell: ({ row }) => <div>{row.getValue("description")}</div>,
     },
     {
-      accessorKey: "categoryId",
+      accessorKey: "subCategoryId",
       header: "Kategori",
       cell: ({ row }) => {
-        const categoryId = row.getValue("categoryId") as string;
-        return <div>{getCategoryName(categoryId)}</div>;
+        const subCategoryId = row.getValue("subCategoryId") as string;
+        const subCategoryName = getSubCategoryName(subCategoryId);
+        const categoryName = getCategoryNameFromSub(subCategoryId);
+        return (
+            <div>
+                <p className="font-medium">{subCategoryName}</p>
+                <p className="text-xs text-muted-foreground">{categoryName}</p>
+            </div>
+        );
       },
       filterFn: (row, id, value) => {
-        const categoryId = row.getValue("categoryId") as string;
-        return value.includes(getCategoryName(categoryId));
+        const subCategoryId = row.getValue("subCategoryId") as string;
+        const subCategoryName = getSubCategoryName(subCategoryId);
+        const categoryName = getCategoryNameFromSub(subCategoryId);
+        return subCategoryName.toLowerCase().includes(value.toLowerCase()) || categoryName.toLowerCase().includes(value.toLowerCase());
       }
     },
     {
@@ -205,10 +221,10 @@ export default function TransactionsClient() {
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Cari berdasarkan keterangan..."
-          value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
+          placeholder="Cari berdasarkan ket./kategori..."
+          value={(table.getColumn("subCategoryId")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("description")?.setFilterValue(event.target.value)
+            table.getColumn("subCategoryId")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />

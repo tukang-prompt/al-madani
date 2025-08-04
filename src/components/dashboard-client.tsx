@@ -10,7 +10,7 @@ import type { Transaction } from "@/lib/types";
 import { Button } from "./ui/button";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subDays, addDays } from "date-fns";
+import { format, startOfMonth, endOfMonth, subDays, addDays } from "date-fns";
 import { id } from "date-fns/locale";
 
 function formatCurrency(amount: number) {
@@ -51,7 +51,7 @@ const getImageAsBase64 = (url: string): Promise<string> => {
 
 
 export default function DashboardClient() {
-  const { transactions, categories, settings, loading } = useData();
+  const { transactions, categories, subCategories, settings, loading } = useData();
 
   const stats = useMemo(() => {
     const openingBalance = settings?.openingBalance || 0;
@@ -79,7 +79,7 @@ export default function DashboardClient() {
       .slice(0, 5);
   }, [transactions]);
 
-  const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'Lainnya';
+  const getSubCategoryName = (id: string) => subCategories.find(sc => sc.id === id)?.name || 'Lainnya';
 
   const handleExportPDF = async (reportType: 'weekly' | 'monthly') => {
     if (!settings) return;
@@ -120,8 +120,10 @@ export default function DashboardClient() {
         const daysSinceLastFriday = (dayOfWeek + 7 - 5) % 7;
         startDate = new Date(now);
         startDate.setDate(now.getDate() - daysSinceLastFriday);
+        startDate.setHours(0, 0, 0, 0); // Start of Friday
         
         endDate = addDays(startDate, 6); // The upcoming Thursday
+        endDate.setHours(23, 59, 59, 999); // End of Thursday
         reportTitle = `Laporan Mingguan (${format(startDate, "d MMM", { locale: id })} - ${format(endDate, "d MMM yyyy", { locale: id })})`;
         
         const prevThursday = subDays(startDate, 1);
@@ -166,23 +168,30 @@ export default function DashboardClient() {
       ]);
       
       incomeCategories.forEach(cat => {
-          const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
-          if (categoryTransactions.length > 0) {
+          const categorySubCategories = subCategories.filter(sc => sc.parentId === cat.id);
+          const categoryTransactions = sortedTransactions.filter(tx => categorySubCategories.some(sc => sc.id === tx.subCategoryId));
+          
+          if(categorySubCategories.length > 0) {
             tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
-            categoryTransactions.forEach((tx, index) => {
-                runningBalance += tx.amount;
-                totalIncome += tx.amount;
+
+            categorySubCategories.forEach(sc => {
+                const subCategoryTransactions = sortedTransactions.filter(tx => tx.subCategoryId === sc.id);
+                const subCategoryTotal = subCategoryTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+
+                // Always show income subcategories
                 tableBody.push([
-                    `${index + 1}`,
-                    tx.description || '-',
-                    { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
                     '-',
-                    { content: formatCurrencyPDF(runningBalance), styles: { halign: 'right' } }
+                    sc.name,
+                    { content: formatCurrencyPDF(subCategoryTotal), styles: { halign: 'right' } },
+                    '-',
+                    ''
                 ]);
+                totalIncome += subCategoryTotal;
+                runningBalance += subCategoryTotal;
             });
           }
       });
-      if (sortedTransactions.filter(tx => tx.type === 'income').length === 0) {
+       if (sortedTransactions.filter(tx => tx.type === 'income').length === 0) {
            tableBody.push([
               { content: 'Tidak ada pemasukan periode ini', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
@@ -193,19 +202,26 @@ export default function DashboardClient() {
       ]);
       
       expenseCategories.forEach(cat => {
-          const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
-           if (categoryTransactions.length > 0) {
+          const categorySubCategories = subCategories.filter(sc => sc.parentId === cat.id);
+          const categoryTransactions = sortedTransactions.filter(tx => categorySubCategories.some(sc => sc.id === tx.subCategoryId));
+
+          if (categoryTransactions.length > 0) {
               tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
-              categoryTransactions.forEach((tx, index) => {
-                  runningBalance -= tx.amount;
-                  totalExpense += tx.amount;
-                  tableBody.push([
-                      `${index + 1}`,
-                      tx.description || '-',
-                      '-',
-                      { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
-                      { content: formatCurrencyPDF(runningBalance), styles: { halign: 'right' } }
-                  ]);
+              
+              categorySubCategories.forEach(sc => {
+                  const subCategoryTransactions = sortedTransactions.filter(tx => tx.subCategoryId === sc.id);
+                  if (subCategoryTransactions.length > 0) {
+                    const subCategoryTotal = subCategoryTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+                    tableBody.push([
+                        '-',
+                        sc.name,
+                        '-',
+                        { content: formatCurrencyPDF(subCategoryTotal), styles: { halign: 'right' } },
+                        ''
+                    ]);
+                    totalExpense += subCategoryTotal;
+                    runningBalance -= subCategoryTotal;
+                  }
               });
            }
       });
@@ -224,7 +240,7 @@ export default function DashboardClient() {
       ]);
       tableBody.push([
           { content: '', colSpan: 1, styles: { borderBottom: 'none' } },
-          { content: `Total saldo akhir per ${format(new Date(), "d MMMM yyyy", { locale: id })}`, styles: { fontStyle: 'bold', halign: 'right' } },
+          { content: `Total saldo akhir per ${format(endDate, "d MMMM yyyy", { locale: id })}`, styles: { fontStyle: 'bold', halign: 'right' } },
           { content: '', colSpan: 2 },
           { content: formatCurrencyPDF(runningBalance), styles: { fontStyle: 'bold', halign: 'right' } },
       ]);
@@ -238,8 +254,8 @@ export default function DashboardClient() {
           headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 9 },
           styles: { font: "helvetica", fontSize: 8, cellPadding: 2 },
           columnStyles: {
-              0: { cellWidth: 10, halign: 'center' },
-              1: { cellWidth: 60 },
+              0: { cellWidth: 8, halign: 'center' },
+              1: { cellWidth: 62 },
               2: { halign: 'right' },
               3: { halign: 'right' },
               4: { halign: 'right' },
@@ -248,11 +264,21 @@ export default function DashboardClient() {
               const row = data.row.raw;
               if (row[0].colSpan === 5 && typeof row[0] === 'object') {
                 data.cell.styles.fontStyle = 'bold';
+                data.cell.styles.fontSize = 8.5;
                 if (['Pemasukan', 'Pengeluaran', 'Saldo'].includes(row[0].content)) {
                     data.cell.styles.fillColor = '#f0f0f0';
                 } else {
                     data.cell.styles.halign = 'left';
+                    data.cell.styles.fontSize = 9;
                 }
+              }
+              if (data.section === 'body' && data.column.index > 1) {
+                if (data.cell.raw === '-') {
+                    data.cell.text = '';
+                }
+              }
+              if(data.row.index === tableBody.length - 1 || data.row.index === tableBody.length - 2) {
+                  data.cell.styles.borderBottom = 'none';
               }
           }
       });
@@ -358,7 +384,7 @@ export default function DashboardClient() {
                 <div key={tx.id} className="flex items-center gap-4">
                   <div className="grid gap-1 flex-1">
                     <p className="text-sm font-medium leading-none">{tx.description}</p>
-                    <p className="text-sm text-muted-foreground">{getCategoryName(tx.categoryId)}</p>
+                    <p className="text-sm text-muted-foreground">{getSubCategoryName(tx.subCategoryId)}</p>
                   </div>
                   <div className={`font-medium ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                     {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount)}
@@ -373,5 +399,3 @@ export default function DashboardClient() {
       </Card>
     </div>
   );
-
-    

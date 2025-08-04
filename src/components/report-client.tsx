@@ -18,87 +18,88 @@ function formatCurrency(amount: number) {
 }
 
 export default function ReportClient() {
-  const { transactions, categories, settings, loading } = useData();
-
-  const getPreviousFriday = (date = new Date()) => {
-    const previous = new Date(date.getTime());
-    const dayOfWeek = date.getDay(); // 0 (Sun) to 6 (Sat)
-    const daysToSubtract = (dayOfWeek + 7 - 5) % 7; // Days to subtract to get to last Friday
-     if(daysToSubtract === 0 && date.getDay() === 5) { // if today is Friday
-       previous.setDate(date.getDate() - 7);
-    } else {
-       previous.setDate(date.getDate() - daysToSubtract);
-    }
-    return previous;
-  };
+  const { transactions, categories, subCategories, settings, loading } = useData();
 
   const reportData = React.useMemo(() => {
     if (loading || !settings) return null;
 
     const sortedTransactions = transactions.slice().sort((a, b) => a.date.getTime() - b.date.getTime());
-    const incomeCategories = categories.filter(c => c.type === 'income');
-    const expenseCategories = categories.filter(c => c.type === 'expense');
-
+    
     let runningBalance = settings.openingBalance || 0;
     let totalIncome = 0;
     let totalExpense = 0;
-    
-    const openingBalanceRow = {
-        description: `Saldo per Jumat, ${format(getPreviousFriday(), "d MMMM yyyy", { locale: id })}`,
-        income: 0,
-        expense: 0,
-        balance: runningBalance,
-    };
-    
-    const reportRows: { category: string; description: string; income: number; expense: number; balance: number; isCategoryHeader?: boolean; isTotal?: boolean; }[] = [];
 
-    // Pemasukan
-    incomeCategories.forEach(cat => {
-        reportRows.push({ category: cat.name, description: '', income: 0, expense: 0, balance: 0, isCategoryHeader: true });
-        const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
-        if (categoryTransactions.length > 0) {
-            categoryTransactions.forEach(tx => {
-                runningBalance += tx.amount;
-                totalIncome += tx.amount;
-                reportRows.push({
-                    category: cat.name,
-                    description: tx.description,
-                    income: tx.amount,
-                    expense: 0,
-                    balance: runningBalance,
-                });
-            });
-        }
-    });
+    const allIncomeSubCategories = subCategories.filter(sc => sc.type === 'income');
+    const allExpenseSubCategories = subCategories.filter(sc => sc.type === 'expense');
 
-    // Pengeluaran
-    expenseCategories.forEach(cat => {
-        reportRows.push({ category: cat.name, description: '', income: 0, expense: 0, balance: 0, isCategoryHeader: true });
-        const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
-        if (categoryTransactions.length > 0) {
-            categoryTransactions.forEach(tx => {
-                runningBalance -= tx.amount;
-                totalExpense += tx.amount;
-                reportRows.push({
-                    category: cat.name,
-                    description: tx.description,
-                    income: 0,
-                    expense: tx.amount,
-                    balance: runningBalance,
-                });
-            });
+    const incomeReport = categories
+      .filter(c => c.type === 'income')
+      .map(cat => {
+        const subs = allIncomeSubCategories.filter(sc => sc.parentId === cat.id);
+        const subCategoryReports = subs.map(sc => {
+            const subCategoryTransactions = sortedTransactions.filter(tx => tx.subCategoryId === sc.id);
+            const subCategoryTotal = subCategoryTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+            totalIncome += subCategoryTotal;
+            runningBalance += subCategoryTotal;
+            return {
+                name: sc.name,
+                total: subCategoryTotal,
+                transactions: subCategoryTransactions.map(tx => {
+                    return {
+                        description: tx.description,
+                        amount: tx.amount,
+                    }
+                })
+            }
+        });
+        return {
+            name: cat.name,
+            subCategories: subCategoryReports
         }
-    });
+      });
+      
+    const expenseReport = categories
+        .filter(c => c.type === 'expense')
+        .map(cat => {
+            const subs = allExpenseSubCategories.filter(sc => sc.parentId === cat.id);
+            const subCategoryReports = subs.map(sc => {
+                const subCategoryTransactions = sortedTransactions.filter(tx => tx.subCategoryId === sc.id);
+                if(subCategoryTransactions.length === 0) return null;
+
+                const subCategoryTotal = subCategoryTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+                totalExpense += subCategoryTotal;
+                runningBalance -= subCategoryTotal;
+                return {
+                    name: sc.name,
+                    total: subCategoryTotal,
+                    transactions: subCategoryTransactions.map(tx => {
+                        return {
+                            description: tx.description,
+                            amount: tx.amount,
+                        }
+                    })
+                }
+            }).filter(Boolean);
+            
+            if(subCategoryReports.length === 0) return null;
+
+            return {
+                name: cat.name,
+                subCategories: subCategoryReports
+            }
+      }).filter(Boolean);
+
 
     return {
-      openingBalanceRow,
-      rows: reportRows.filter(r => !r.isCategoryHeader || reportRows.some(i => i.category === r.category && !i.isCategoryHeader)), // only show category if it has items
+      openingBalance: settings.openingBalance,
+      incomeReport,
+      expenseReport,
       totalIncome,
       totalExpense,
-      finalBalance: runningBalance
+      finalBalance: settings.openingBalance + totalIncome - totalExpense,
     };
 
-  }, [transactions, categories, settings, loading]);
+  }, [transactions, categories, subCategories, settings, loading]);
 
   if (loading) {
     return (
@@ -136,82 +137,85 @@ export default function ReportClient() {
     );
   }
   
-  const { openingBalanceRow, rows, totalIncome, totalExpense, finalBalance } = reportData;
+  const { openingBalance, incomeReport, expenseReport, totalIncome, totalExpense, finalBalance } = reportData;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Ringkasan Keuangan</CardTitle>
+          <CardTitle className="font-headline">Laporan Keuangan Kumulatif</CardTitle>
           <CardDescription>
-            Berikut adalah ringkasan pemasukan dan pengeluaran yang tercatat.
+            Berikut adalah ringkasan seluruh pemasukan dan pengeluaran yang pernah tercatat.
           </CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[50%]">Keterangan</TableHead>
-                        <TableHead className="text-right">Pemasukan</TableHead>
-                        <TableHead className="text-right">Pengeluaran</TableHead>
-                        <TableHead className="text-right">Saldo</TableHead>
+                        <TableHead className="w-[55%]">Keterangan</TableHead>
+                        <TableHead className="text-right w-[25%]">Jumlah</TableHead>
+                        <TableHead className="text-right w-[20%]">Total</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     <TableRow className="font-bold bg-muted/50">
-                        <TableCell>{openingBalanceRow.description}</TableCell>
+                        <TableCell>Saldo Awal (Modal)</TableCell>
                         <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell className="text-right">{formatCurrency(openingBalanceRow.balance)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(openingBalance)}</TableCell>
                     </TableRow>
                     
                     <TableRow className="font-bold bg-muted/30">
-                        <TableCell colSpan={4}>Pemasukan</TableCell>
+                        <TableCell colSpan={3}>Pemasukan</TableCell>
                     </TableRow>
-                    {rows.filter(r => categories.find(c => c.id === r.category)?.type === 'income').length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Tidak ada pemasukan</TableCell></TableRow>
-                    ) : (
-                        rows.filter(r => categories.find(c => c.id === r.category)?.type === 'income').map((row, index) => (
-                             <React.Fragment key={`income-${index}`}>
-                                { (index === 0 || rows[index-1].category !== row.category) && 
-                                    <TableRow className="font-semibold text-sm"><TableCell colSpan={4} className="py-1.5 pl-6">{row.category}</TableCell></TableRow>
-                                }
-                               <TableRow>
-                                    <TableCell className="pl-8 text-muted-foreground">{row.description}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(row.income)}</TableCell>
-                                    <TableCell className="text-right">-</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(row.balance)}</TableCell>
+                    {incomeReport.map((catReport, catIndex) => (
+                        <React.Fragment key={`inc-cat-${catIndex}`}>
+                            <TableRow className="font-semibold text-sm">
+                                <TableCell colSpan={3} className="pt-3 pb-1 pl-6">{catReport.name}</TableCell>
+                            </TableRow>
+                            {catReport.subCategories.map((scReport, scIndex) => (
+                                <TableRow key={`inc-sc-${scIndex}`}>
+                                    <TableCell className="pl-10 text-muted-foreground">{scReport.name}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(scReport.total)}</TableCell>
+                                    <TableCell></TableCell>
                                 </TableRow>
-                             </React.Fragment>
-                        ))
-                    )}
+                            ))}
+                        </React.Fragment>
+                    ))}
                     
-                    <TableRow className="font-bold bg-muted/30">
-                        <TableCell colSpan={4}>Pengeluaran</TableCell>
+                     <TableRow className="font-bold bg-muted/30">
+                        <TableCell colSpan={3}>Pengeluaran</TableCell>
                     </TableRow>
-                    {rows.filter(r => categories.find(c => c.id === r.category)?.type === 'expense').length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Tidak ada pengeluaran</TableCell></TableRow>
-                    ) : (
-                         rows.filter(r => categories.find(c => c.id === r.category)?.type === 'expense').map((row, index) => (
-                             <React.Fragment key={`expense-${index}`}>
-                                { (index === 0 || rows.filter(r => categories.find(c => c.id === r.category)?.type === 'expense')[index-1]?.category !== row.category) && 
-                                    <TableRow className="font-semibold text-sm"><TableCell colSpan={4} className="py-1.5 pl-6">{row.category}</TableCell></TableRow>
-                                }
-                               <TableRow>
-                                    <TableCell className="pl-8 text-muted-foreground">{row.description}</TableCell>
-                                    <TableCell className="text-right">-</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(row.expense)}</TableCell>
-                                    <TableCell className="text-right">{formatCurrency(row.balance)}</TableCell>
+                    {expenseReport.length === 0 ? (
+                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-3">Tidak ada pengeluaran</TableCell></TableRow>
+                    ) : expenseReport.map((catReport, catIndex) => (
+                        <React.Fragment key={`exp-cat-${catIndex}`}>
+                            <TableRow className="font-semibold text-sm">
+                                <TableCell colSpan={3} className="pt-3 pb-1 pl-6">{catReport.name}</TableCell>
+                            </TableRow>
+                            {catReport.subCategories.map((scReport, scIndex) => (
+                                <TableRow key={`exp-sc-${scIndex}`}>
+                                    <TableCell className="pl-10 text-muted-foreground">{scReport.name}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(scReport.total)}</TableCell>
+                                    <TableCell></TableCell>
                                 </TableRow>
-                            </React.Fragment>
-                        ))
-                    )}
+                            ))}
+                        </React.Fragment>
+                    ))}
                 </TableBody>
                 <TableFooter>
-                    <TableRow className="font-bold text-base">
-                        <TableCell>Total</TableCell>
+                    <TableRow className="font-bold text-base bg-muted/50">
+                        <TableCell>Total Pemasukan</TableCell>
                         <TableCell className="text-right">{formatCurrency(totalIncome)}</TableCell>
+                        <TableCell></TableCell>
+                    </TableRow>
+                     <TableRow className="font-bold text-base bg-muted/50">
+                        <TableCell>Total Pengeluaran</TableCell>
                         <TableCell className="text-right">{formatCurrency(totalExpense)}</TableCell>
+                        <TableCell></TableCell>
+                    </TableRow>
+                     <TableRow className="font-bold text-base bg-muted/50">
+                        <TableCell>Saldo Akhir</TableCell>
+                        <TableCell></TableCell>
                         <TableCell className="text-right">{formatCurrency(finalBalance)}</TableCell>
                     </TableRow>
                 </TableFooter>

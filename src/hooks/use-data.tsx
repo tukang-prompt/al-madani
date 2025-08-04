@@ -3,14 +3,15 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp, orderBy, getDocs, setDoc } from 'firebase/firestore';
-import type { Transaction, Category, TransactionData, CategoryData, Settings } from '@/lib/types';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, Timestamp, orderBy, getDocs, setDoc, writeBatch } from 'firebase/firestore';
+import type { Transaction, Category, TransactionData, CategoryData, Settings, SubCategory, SubCategoryData } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from './use-toast';
 
 interface DataContextType {
   transactions: Transaction[];
   categories: Category[];
+  subCategories: SubCategory[];
   settings: Settings | null;
   addTransaction: (data: TransactionData) => Promise<void>;
   updateTransaction: (id: string, data: Partial<TransactionData>) => Promise<void>;
@@ -18,6 +19,9 @@ interface DataContextType {
   addCategory: (data: CategoryData) => Promise<void>;
   updateCategory: (id: string, data: Partial<CategoryData>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
+  addSubCategory: (data: SubCategoryData) => Promise<void>;
+  updateSubCategory: (id: string, data: Partial<SubCategoryData>) => Promise<void>;
+  deleteSubCategory: (id: string) => Promise<void>;
   updateSettings: (data: Settings) => Promise<void>;
   loading: boolean;
 }
@@ -29,6 +33,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +48,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) {
       setTransactions([]);
       setCategories([]);
+      setSubCategories([]);
       setSettings(null);
       setLoading(false);
       return;
@@ -50,7 +56,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     setLoading(true);
     const transactionsQuery = query(collection(db, 'transactions'), where('userId', '==', user.uid), orderBy('date', 'desc'));
-    const categoriesQuery = query(collection(db, 'categories'), where('userId', '==', user.uid));
+    const categoriesQuery = query(collection(db, 'categories'), where('userId', '==', user.uid), orderBy('name', 'asc'));
+    const subCategoriesQuery = query(collection(db, 'subcategories'), where('userId', '==', user.uid), orderBy('name', 'asc'));
     const settingsDocRef = doc(db, 'settings', settingsDocId);
 
     const unsubscribeTransactions = onSnapshot(transactionsQuery, (snapshot) => {
@@ -78,6 +85,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       showToast("Error", "Gagal memuat data kategori.", "destructive");
     });
     
+    const unsubscribeSubCategories = onSnapshot(subCategoriesQuery, (snapshot) => {
+      const newSubCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SubCategory));
+      setSubCategories(newSubCategories);
+    }, (error) => {
+      console.error("Error fetching sub-categories:", error);
+      showToast("Error", "Gagal memuat data sub-kategori.", "destructive");
+    });
+    
     const unsubscribeSettings = onSnapshot(settingsDocRef, (doc) => {
         if(doc.exists()){
             const data = doc.data() as Settings;
@@ -102,6 +117,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       unsubscribeTransactions();
       unsubscribeCategories();
+      unsubscribeSubCategories();
       unsubscribeSettings();
     };
   }, [user, toast, settingsDocId]);
@@ -159,12 +175,57 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   }, [toast]);
 
   const deleteCategory = useCallback(async (id: string) => {
+    if (!user) return;
     try {
-      await deleteDoc(doc(db, 'categories', id));
-      showToast("Sukses", "Kategori berhasil dihapus.");
+      const batch = writeBatch(db);
+      
+      // Delete the category itself
+      const categoryRef = doc(db, 'categories', id);
+      batch.delete(categoryRef);
+      
+      // Find and delete all related subcategories
+      const subCategoriesQuery = query(collection(db, 'subcategories'), where('userId', '==', user.uid), where('parentId', '==', id));
+      const subCategoriesSnapshot = await getDocs(subCategoriesQuery);
+      subCategoriesSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+      showToast("Sukses", "Kategori dan semua sub-kategorinya berhasil dihapus.");
     } catch (error) {
-      console.error("Error deleting category:", error);
+      console.error("Error deleting category and its subcategories:", error);
       showToast("Error", "Gagal menghapus kategori.", "destructive");
+    }
+  }, [user, toast]);
+
+  const addSubCategory = useCallback(async (data: SubCategoryData) => {
+    if (!user) return;
+    try {
+      await addDoc(collection(db, 'subcategories'), { ...data, userId: user.uid });
+      showToast("Sukses", "Sub-kategori berhasil ditambahkan.");
+    } catch (error) {
+      console.error("Error adding sub-category:", error);
+      showToast("Error", "Gagal menambahkan sub-kategori.", "destructive");
+    }
+  }, [user, toast]);
+
+  const updateSubCategory = useCallback(async (id: string, data: Partial<SubCategoryData>) => {
+    try {
+      await updateDoc(doc(db, 'subcategories', id), data);
+      showToast("Sukses", "Sub-kategori berhasil diperbarui.");
+    } catch (error) {
+      console.error("Error updating sub-category:", error);
+      showToast("Error", "Gagal memperbarui sub-kategori.", "destructive");
+    }
+  }, [toast]);
+
+  const deleteSubCategory = useCallback(async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'subcategories', id));
+      showToast("Sukses", "Sub-kategori berhasil dihapus.");
+    } catch (error) {
+      console.error("Error deleting sub-category:", error);
+      showToast("Error", "Gagal menghapus sub-kategori.", "destructive");
     }
   }, [toast]);
 
@@ -182,6 +243,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const value = useMemo(() => ({
     transactions,
     categories,
+    subCategories,
     settings,
     addTransaction,
     updateTransaction,
@@ -189,9 +251,28 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     addCategory,
     updateCategory,
     deleteCategory,
+    addSubCategory,
+    updateSubCategory,
+    deleteSubCategory,
     updateSettings,
     loading,
-  }), [transactions, categories, settings, addTransaction, updateTransaction, deleteTransaction, addCategory, updateCategory, deleteCategory, updateSettings, loading]);
+  }), [
+      transactions, 
+      categories, 
+      subCategories, 
+      settings, 
+      addTransaction, 
+      updateTransaction, 
+      deleteTransaction, 
+      addCategory, 
+      updateCategory, 
+      deleteCategory, 
+      addSubCategory,
+      updateSubCategory,
+      deleteSubCategory,
+      updateSettings, 
+      loading
+  ]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };

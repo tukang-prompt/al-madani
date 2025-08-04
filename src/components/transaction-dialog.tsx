@@ -30,6 +30,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -39,14 +41,14 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useData } from "@/hooks/use-data";
 import type { Transaction, TransactionType } from "@/lib/types";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Tipe harus dipilih" }),
   amount: z.coerce.number().min(1, "Jumlah harus lebih dari 0"),
   date: z.date({ required_error: "Tanggal harus diisi" }),
   description: z.string().optional(),
-  categoryId: z.string({ required_error: "Kategori harus dipilih" }),
+  subCategoryId: z.string({ required_error: "Sub-kategori harus dipilih" }),
 });
 
 type TransactionFormValues = z.infer<typeof formSchema>;
@@ -58,7 +60,7 @@ interface TransactionDialogProps {
 }
 
 export function TransactionDialog({ open, onOpenChange, transaction }: TransactionDialogProps) {
-  const { categories, addTransaction, updateTransaction } = useData();
+  const { categories, subCategories, addTransaction, updateTransaction } = useData();
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,23 +68,40 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
       amount: 0,
       date: new Date(),
       description: "",
-      categoryId: "",
+      subCategoryId: "",
     },
   });
   
   const transactionType = form.watch("type");
 
+  const groupedSubCategories = useMemo(() => {
+    return categories
+      .filter((c) => c.type === transactionType)
+      .map((category) => ({
+        ...category,
+        subCategories: subCategories.filter(
+          (sc) => sc.parentId === category.id
+        ),
+      }))
+      .filter((group) => group.subCategories.length > 0);
+  }, [categories, subCategories, transactionType]);
+
+
   useEffect(() => {
     if (open) {
       if (transaction) {
         // Mode Edit: set nilai form dari transaksi yang ada
+        const subCategory = subCategories.find(sc => sc.id === transaction.subCategoryId);
         form.reset({
           type: transaction.type,
           amount: transaction.amount,
           date: transaction.date,
           description: transaction.description || "",
-          categoryId: transaction.categoryId,
+          subCategoryId: transaction.subCategoryId,
         });
+        if (subCategory && subCategory.type !== form.getValues('type')) {
+           form.setValue('type', subCategory.type);
+        }
       } else {
         // Mode Tambah: reset ke nilai default
         form.reset({
@@ -90,27 +109,23 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
           amount: 0,
           date: new Date(),
           description: "",
-          categoryId: "",
+          subCategoryId: "",
         });
       }
     }
-  }, [transaction, open, form]);
+  }, [transaction, open, form, subCategories]);
   
   useEffect(() => {
-    const subscription = form.watch((value, { name, type }) => {
-        // Only reset category if the type changes interactively and it's not the initial load
-        if (name === 'type' && type === 'change') {
-            form.setValue('categoryId', '');
+     const subscription = form.watch((value, { name, type }) => {
+        if (name === 'type' && type === 'change' && !transaction) {
+            form.setValue('subCategoryId', '');
         }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
-
-  const filteredCategories = categories.filter((c) => c.type === transactionType);
+     });
+     return () => subscription.unsubscribe();
+  }, [form, transaction]);
 
   function onSubmit(data: TransactionFormValues) {
-    const description = data.description || format(data.date, "EEEE, d MMMM yyyy", { locale: id });
+    const description = data.description?.trim() || format(data.date, "EEEE, d MMMM yyyy", { locale: id });
     const payload = {
       ...data,
       amount: Number(String(data.amount).replace(/[^0-9]/g, '')),
@@ -187,7 +202,7 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
                   <FormControl>
                     <Input 
                       type="text" 
-                      placeholder="50.000" 
+                      placeholder="0" 
                       {...field}
                       onChange={(e) => handleAmountChange(e, field)}
                       value={field.value > 0 ? new Intl.NumberFormat('id-ID').format(field.value) : ''}
@@ -199,21 +214,26 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
             />
             <FormField
               control={form.control}
-              name="categoryId"
+              name="subCategoryId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Kategori</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih kategori" />
+                        <SelectValue placeholder="Pilih sub-kategori" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredCategories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
+                      {groupedSubCategories.map((group) => (
+                        <SelectGroup key={group.id}>
+                            <SelectLabel>{group.name}</SelectLabel>
+                            {group.subCategories.map(sc => (
+                                <SelectItem key={sc.id} value={sc.id}>
+                                    {sc.name}
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
