@@ -13,12 +13,13 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/logo";
-import { LayoutDashboard, ArrowRightLeft, Shapes } from "lucide-react";
+import { LayoutDashboard, ArrowRightLeft, Shapes, FileText } from "lucide-react";
 
 const menuItems = [
   { href: "/", label: "Dasbor", icon: LayoutDashboard },
   { href: "/transactions", label: "Transaksi", icon: ArrowRightLeft },
   { href: "/categories", label: "Kategori", icon: Shapes },
+  { href: "/report", label: "Laporan", icon: FileText },
 ];
 
 export function SideNav() {
