@@ -99,34 +99,31 @@ export default function ReportClient() {
           { content: 'Pemasukan', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
       
-      let incomeAdded = false;
-      incomeCategories.forEach(cat => {
-          const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
-          
-          if (categoryTransactions.length > 0) {
-              incomeAdded = true;
-              tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold' } }]);
-              
-              categoryTransactions.forEach((tx, index) => {
-                  runningBalance += tx.amount;
-                  totalIncome += tx.amount;
-                  tableBody.push([
-                      `${index + 1}`,
-                      tx.description || '-',
-                      { content: formatCurrency(tx.amount), styles: { halign: 'right' } },
-                      '-',
-                      { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
-                  ]);
-              });
-          } else {
-              tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold' } }]);
-              tableBody.push([{ content: 'Tidak ada transaksi', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }]);
-          }
-      });
-      
-      if (!incomeAdded && incomeCategories.length === 0) {
+      if (incomeCategories.length > 0) {
+        incomeCategories.forEach(cat => {
+            const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
+            
+            tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
+
+            if (categoryTransactions.length > 0) {
+                categoryTransactions.forEach((tx, index) => {
+                    runningBalance += tx.amount;
+                    totalIncome += tx.amount;
+                    tableBody.push([
+                        `${index + 1}`,
+                        tx.description || '-',
+                        { content: formatCurrency(tx.amount), styles: { halign: 'right' } },
+                        '-',
+                        { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
+                    ]);
+                });
+            } else {
+                tableBody.push([{ content: 'Tidak ada transaksi', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }]);
+            }
+        });
+      } else {
          tableBody.push([
-              { content: 'Tidak ada pemasukan', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
+              { content: 'Tidak ada kategori pemasukan', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
       }
       
@@ -142,7 +139,7 @@ export default function ReportClient() {
 
             if (categoryTransactions.length > 0) {
                 expenseAdded = true;
-                tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold' } }]);
+                tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
 
                 categoryTransactions.forEach((tx, index) => {
                     runningBalance -= tx.amount;
@@ -165,7 +162,7 @@ export default function ReportClient() {
         }
       } else {
            tableBody.push([
-              { content: 'Tidak ada pengeluaran', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
+              { content: 'Tidak ada kategori pengeluaran', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
       }
 
