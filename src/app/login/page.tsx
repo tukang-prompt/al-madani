@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -23,9 +22,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
-import { Logo } from "@/components/logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import Image from 'next/image';
 
 const formSchema = z.object({
   email: z.string().email("Format email tidak valid"),
@@ -64,7 +63,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-             <Logo className="h-12 w-12" />
+             <Image src="/logo.png" alt="Logo Masjid" width={64} height={64} className="h-16 w-16" />
           </div>
           <CardTitle className="text-2xl font-headline">Login</CardTitle>
           <CardDescription>
