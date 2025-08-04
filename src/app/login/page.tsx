@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -89,7 +90,6 @@ export default function LoginPage() {
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="email@anda.com"
                         {...field}
                         disabled={isLoading}
                       />
@@ -107,7 +107,6 @@ export default function LoginPage() {
                     <FormControl>
                       <Input
                         type="password"
-                        placeholder="******"
                         {...field}
                         disabled={isLoading}
                       />
