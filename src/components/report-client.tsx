@@ -88,7 +88,7 @@ export default function ReportClient() {
       ]);
       tableBody.push([
           '1',
-          'Sisa saldo awal periode',
+          'Saldo awal (modal awal)',
           '-',
           '-',
           { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
@@ -136,10 +136,10 @@ export default function ReportClient() {
         let expenseAdded = false;
         expenseCategories.forEach(cat => {
             const categoryTransactions = sortedTransactions.filter(tx => tx.categoryId === cat.id);
+            tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
 
             if (categoryTransactions.length > 0) {
                 expenseAdded = true;
-                tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
 
                 categoryTransactions.forEach((tx, index) => {
                     runningBalance -= tx.amount;
@@ -152,14 +152,13 @@ export default function ReportClient() {
                         { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
                     ]);
                 });
+            } else {
+                 tableBody.push([
+                    { content: 'Tidak ada transaksi', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
+                ]);
             }
         });
 
-        if (!expenseAdded) {
-             tableBody.push([
-                { content: 'Tidak ada pengeluaran', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
-            ]);
-        }
       } else {
            tableBody.push([
               { content: 'Tidak ada kategori pengeluaran', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
@@ -268,3 +267,6 @@ export default function ReportClient() {
 
     
 
+
+
+    
