@@ -97,24 +97,24 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
   }, [transaction, open, form]);
   
   useEffect(() => {
-    if (!form.formState.isSubmitted) {
-        const subscription = form.watch((value, { name }) => {
-            if (name === 'type') {
-                form.setValue('categoryId', '');
-            }
-        });
-        return () => subscription.unsubscribe();
-    }
+    const subscription = form.watch((value, { name, type }) => {
+        // Only reset category if the type changes interactively and it's not the initial load
+        if (name === 'type' && type === 'change') {
+            form.setValue('categoryId', '');
+        }
+    });
+    return () => subscription.unsubscribe();
   }, [form]);
 
 
   const filteredCategories = categories.filter((c) => c.type === transactionType);
 
   function onSubmit(data: TransactionFormValues) {
+    const description = data.description || format(data.date, "EEEE, d MMMM yyyy", { locale: id });
     const payload = {
       ...data,
       amount: Number(String(data.amount).replace(/[^0-9]/g, '')),
-      description: data.description || "",
+      description: description,
     };
     if (transaction) {
       updateTransaction(transaction.id, payload);
