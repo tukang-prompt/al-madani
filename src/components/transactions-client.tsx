@@ -2,11 +2,6 @@
 
 import * as React from "react";
 import {
-  CaretSortIcon,
-  ChevronDownIcon,
-  DotsHorizontalIcon,
-} from "@radix-ui/react-icons";
-import {
   ColumnDef,
   ColumnFiltersState,
   SortingState,
@@ -18,6 +13,11 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import {
+  ArrowUpDown,
+  MoreHorizontal,
+  PlusCircle,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +54,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
-import { PlusCircle } from "lucide-react";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -93,7 +92,7 @@ export default function TransactionsClient() {
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Tanggal
-          <CaretSortIcon className="ml-2 h-4 w-4" />
+          <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
       cell: ({ row }) => <div>{format(new Date(row.getValue("date")), "d MMM yyyy", { locale: id })}</div>,
@@ -142,7 +141,7 @@ export default function TransactionsClient() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
                   <span className="sr-only">Buka menu</span>
-                  <DotsHorizontalIcon className="h-4 w-4" />
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
