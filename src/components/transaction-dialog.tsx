@@ -43,7 +43,7 @@ const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Tipe harus dipilih" }),
   amount: z.coerce.number().min(1, "Jumlah harus lebih dari 0"),
   date: z.date({ required_error: "Tanggal harus diisi" }),
-  description: z.string().min(1, "Keterangan harus diisi"),
+  description: z.string().optional(),
   categoryId: z.string({ required_error: "Kategori harus dipilih" }),
 });
 
@@ -87,10 +87,14 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
   const filteredCategories = categories.filter((c) => c.type === transactionType);
 
   function onSubmit(data: TransactionFormValues) {
+    const payload = {
+      ...data,
+      description: data.description || "",
+    };
     if (transaction) {
-      updateTransaction(transaction.id, data);
+      updateTransaction(transaction.id, payload);
     } else {
-      addTransaction(data);
+      addTransaction(payload);
     }
     onOpenChange(false);
   }
@@ -215,7 +219,7 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
                 <FormItem>
                   <FormLabel>Keterangan</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="cth: Infaq kotak amal Jumat" {...field} />
+                    <Textarea placeholder="cth: Infaq kotak amal Jumat" {...field} value={field.value ?? ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
