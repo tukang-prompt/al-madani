@@ -60,7 +60,7 @@ export default function DashboardClient() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.income)}</div>
+            <div className="text-xl font-bold">{formatCurrency(stats.income)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -69,7 +69,7 @@ export default function DashboardClient() {
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.expense)}</div>
+            <div className="text-xl font-bold">{formatCurrency(stats.expense)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -78,7 +78,7 @@ export default function DashboardClient() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.balance)}</div>
+            <div className="text-xl font-bold">{formatCurrency(stats.balance)}</div>
           </CardContent>
         </Card>
       </div>
