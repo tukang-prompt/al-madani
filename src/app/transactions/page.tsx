@@ -1,12 +1,12 @@
 import { Header } from "@/components/header";
-import DashboardClient from "@/components/dashboard-client";
+import TransactionsClient from "@/components/transactions-client";
 
-export default function DashboardPage() {
+export default function TransactionsPage() {
   return (
     <div className="flex flex-col h-full">
-      <Header title="Dasbor" />
+      <Header title="Semua Transaksi" />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-        <DashboardClient />
+        <TransactionsClient />
       </main>
     </div>
   );
