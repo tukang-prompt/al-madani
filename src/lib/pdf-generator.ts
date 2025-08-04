@@ -131,17 +131,28 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
             categorySubCategories.forEach(sc => {
                 const subCategoryTransactions = sortedTransactions.filter(tx => tx.subCategoryId === sc.id);
                 const subCategoryTotal = subCategoryTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+                
+                let subCategoryDescription = sc.name;
+                if (subCategoryTransactions.length > 1) {
+                    const descriptions = subCategoryTransactions.map(tx => tx.description).join(', ');
+                    subCategoryDescription += ` (${descriptions})`;
+                } else if (subCategoryTransactions.length === 1) {
+                    // If only one transaction, use its description if it's not the default date format
+                    const txDescription = subCategoryTransactions[0].description;
+                    const defaultDescription = format(subCategoryTransactions[0].date, "EEEE, d MMMM yyyy", { locale: id });
+                    if (txDescription !== defaultDescription) {
+                        subCategoryDescription += ` (${txDescription})`;
+                    }
+                }
 
-                // Always show income subcategories
                 tableBody.push([
                     '-',
-                    sc.name,
+                    subCategoryDescription,
                     { content: formatCurrencyPDF(subCategoryTotal), styles: { halign: 'right' } },
                     '-',
                     ''
                 ]);
                 totalIncome += subCategoryTotal;
-                // Don't update running balance here, it will be calculated at the end
             });
           }
       });
@@ -166,9 +177,22 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
                   const subCategoryTransactions = sortedTransactions.filter(tx => tx.subCategoryId === sc.id);
                   if (subCategoryTransactions.length > 0) {
                     const subCategoryTotal = subCategoryTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+                    
+                    let subCategoryDescription = sc.name;
+                    if (subCategoryTransactions.length > 1) {
+                        const descriptions = subCategoryTransactions.map(tx => tx.description).join(', ');
+                        subCategoryDescription += ` (${descriptions})`;
+                    } else if (subCategoryTransactions.length === 1) {
+                        const txDescription = subCategoryTransactions[0].description;
+                        const defaultDescription = format(subCategoryTransactions[0].date, "EEEE, d MMMM yyyy", { locale: id });
+                         if (txDescription !== defaultDescription) {
+                            subCategoryDescription += ` (${txDescription})`;
+                        }
+                    }
+
                     tableBody.push([
                         '-',
-                        sc.name,
+                        subCategoryDescription,
                         '-',
                         { content: formatCurrencyPDF(subCategoryTotal), styles: { halign: 'right' } },
                         ''
@@ -245,16 +269,16 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
       doc.setFont("helvetica", "normal");
       doc.text(`Bandung, ${todayFormatted}`, pageWidth - margin, finalY, { align: 'right' });
 
-      doc.text("Bendahara DKM", margin, finalY + 7);
-      doc.text("Ketua DKM", pageWidth - margin, finalY + 7, { align: 'right' });
+      doc.text("Bendahara DKM", margin, finalY + 21);
+      doc.text("Ketua DKM", pageWidth - margin, finalY + 21, { align: 'right' });
       
       doc.setFont("helvetica", "bold");
-      doc.text(settings.treasurerName, margin, finalY + 28);
-      doc.text(settings.chairmanName, pageWidth - margin, finalY + 28, { align: 'right' });
+      doc.text(settings.treasurerName, margin, finalY + 42);
+      doc.text(settings.chairmanName, pageWidth - margin, finalY + 42, { align: 'right' });
       
       doc.setLineWidth(0.2);
-      doc.line(margin, finalY + 29, margin + 40, finalY + 29);
-      doc.line(pageWidth - margin - 40, finalY + 29, pageWidth - margin, finalY + 29);
+      doc.line(margin, finalY + 43, margin + 40, finalY + 43);
+      doc.line(pageWidth - margin - 40, finalY + 43, pageWidth - margin, finalY + 43);
 
       doc.save(`laporan-${reportType}-${settings.mosqueName.toLowerCase().replace(/\s/g, '-')}-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     
@@ -263,3 +287,5 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
       alert("Gagal membuat laporan PDF. Pastikan file /logo.png ada di folder public.");
     }
 };
+
+    
