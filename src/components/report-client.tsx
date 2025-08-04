@@ -83,12 +83,28 @@ export default function ReportClient() {
       
       const tableBody = [] as any[];
 
+      const getPreviousFriday = (date = new Date()) => {
+          const previous = new Date(date.getTime());
+          const dayOfWeek = date.getDay(); // 0 (Sun) to 6 (Sat)
+          const daysToSubtract = (dayOfWeek + 7 - 5) % 7; // Days to subtract to get to last Friday
+          if(daysToSubtract === 0) { // if today is Friday
+             previous.setDate(date.getDate() - 7);
+          } else {
+             previous.setDate(date.getDate() - daysToSubtract);
+          }
+          return previous;
+      }
+      
+      const lastFriday = getPreviousFriday();
+      const lastFridayText = `Saldo per Jumat, ${format(lastFriday, "d MMMM yyyy", { locale: id })}`;
+
+
       tableBody.push([
           { content: 'Saldo', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
       tableBody.push([
           '1',
-          'Saldo awal (modal awal)',
+          lastFridayText,
           '-',
           '-',
           { content: formatCurrency(runningBalance), styles: { halign: 'right' } }
@@ -268,5 +284,7 @@ export default function ReportClient() {
     
 
 
+
+    
 
     
