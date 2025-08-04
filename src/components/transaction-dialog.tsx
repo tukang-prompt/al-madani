@@ -39,7 +39,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useData } from "@/hooks/use-data";
 import type { Transaction, TransactionType } from "@/lib/types";
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Tipe harus dipilih" }),
@@ -59,8 +59,6 @@ interface TransactionDialogProps {
 
 export function TransactionDialog({ open, onOpenChange, transaction }: TransactionDialogProps) {
   const { categories, addTransaction, updateTransaction } = useData();
-  const isOpening = useRef(true);
-
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -69,37 +67,46 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
       date: new Date(),
       description: "",
       categoryId: "",
-    }
+    },
   });
   
   const transactionType = form.watch("type");
 
-  const resetForm = useCallback(() => {
-    form.reset({
-      type: transaction?.type || "income",
-      amount: transaction?.amount || 0,
-      date: transaction ? transaction.date : new Date(),
-      description: transaction?.description || "",
-      categoryId: transaction?.categoryId || "",
-    });
-  }, [transaction, form]);
-
   useEffect(() => {
     if (open) {
-      isOpening.current = true;
-      resetForm();
+      if (transaction) {
+        // Mode Edit: set nilai form dari transaksi yang ada
+        form.reset({
+          type: transaction.type,
+          amount: transaction.amount,
+          date: transaction.date,
+          description: transaction.description || "",
+          categoryId: transaction.categoryId,
+        });
+      } else {
+        // Mode Tambah: reset ke nilai default
+        form.reset({
+          type: "income",
+          amount: 0,
+          date: new Date(),
+          description: "",
+          categoryId: "",
+        });
+      }
     }
-  }, [transaction, open, resetForm]);
+  }, [transaction, open, form]);
   
   useEffect(() => {
-    if(open) {
-      if (isOpening.current) {
-        isOpening.current = false;
-        return;
-      }
-      form.setValue('categoryId', '');
+    if (!form.formState.isSubmitted) {
+        const subscription = form.watch((value, { name }) => {
+            if (name === 'type') {
+                form.setValue('categoryId', '');
+            }
+        });
+        return () => subscription.unsubscribe();
     }
-  }, [transactionType, form, open]);
+  }, [form]);
+
 
   const filteredCategories = categories.filter((c) => c.type === transactionType);
 
