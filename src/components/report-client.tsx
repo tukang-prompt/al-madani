@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useData } from "@/hooks/use-data";
@@ -11,6 +12,7 @@ import { id } from "date-fns/locale";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { Skeleton } from "./ui/skeleton";
+import { Logo } from "./logo";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -21,11 +23,13 @@ function formatCurrency(amount: number) {
 }
 
 export default function ReportClient() {
-  const { transactions, categories, loading } = useData();
+  const { transactions, categories, settings, loading } = useData();
   const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name || 'Lainnya';
 
 
   const handleExportPDF = () => {
+    if (!settings) return;
+
     const doc = new jsPDF();
     const tableData = transactions.map(tx => [
         format(tx.date, "d MMM yyyy", { locale: id }),
@@ -38,16 +42,13 @@ export default function ReportClient() {
     const totalExpense = transactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
     const balance = totalIncome - totalExpense;
     
-    const chairmanName = "Bapak H. Abdullah";
-    const treasurerName = "Bapak H. Muhammad";
-
     // Header Laporan
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text("DEWAN KEMAKMURAN MASJID (DKM) AL-MADANI", doc.internal.pageSize.getWidth() / 2, 20, { align: "center" });
+    doc.text(settings.mosqueName.toUpperCase(), doc.internal.pageSize.getWidth() / 2, 20, { align: "center" });
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
-    doc.text("Jl. Raya Teknologi No. 1, Desa Canggih, Kecamatan Modern, Kota Digital", doc.internal.pageSize.getWidth() / 2, 26, { align: "center" });
+    doc.text(settings.mosqueAddress, doc.internal.pageSize.getWidth() / 2, 26, { align: "center" });
     doc.setLineWidth(0.5);
     doc.line(14, 32, doc.internal.pageSize.getWidth() - 14, 32);
 
@@ -79,7 +80,7 @@ export default function ReportClient() {
     
     // Tanda Tangan
     const finalY = (doc as any).lastAutoTable.finalY || 180;
-    const signatureY = finalY + 20;
+    const signatureY = finalY + 20 > 250 ? 250 : finalY + 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     doc.setFontSize(10);
     doc.text("Mengetahui,", 30, signatureY);
@@ -88,15 +89,15 @@ export default function ReportClient() {
     doc.text("Bendahara,", pageWidth - 80, signatureY + 5);
     
     doc.setFont("helvetica", "bold");
-    doc.text(chairmanName, 30, signatureY + 25);
-    doc.text(treasurerName, pageWidth - 80, signatureY + 25);
+    doc.text(settings.chairmanName, 30, signatureY + 25);
+    doc.text(settings.treasurerName, pageWidth - 80, signatureY + 25);
     doc.setFont("helvetica", "normal");
     doc.setLineWidth(0.2);
     doc.line(30, signatureY + 26, 80, signatureY + 26);
     doc.line(pageWidth - 80, signatureY + 26, pageWidth - 30, signatureY + 26);
 
 
-    doc.save("laporan-keuangan-al-madani.pdf");
+    doc.save(`laporan-keuangan-${settings.mosqueName.toLowerCase().replace(/\s/g, '-')}.pdf`);
   };
 
   return (

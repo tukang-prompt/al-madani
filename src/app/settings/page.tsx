@@ -1,17 +1,17 @@
 
 import { Header } from "@/components/header";
-import CategoriesClient from "@/components/categories-client";
+import SettingsClient from "@/components/settings-client";
 import { MainLayout } from "@/components/main-layout";
 import { UserNav } from "@/components/user-nav";
 
-export default function CategoriesPage() {
+export default function SettingsPage() {
   return (
     <MainLayout>
-      <Header title="Kelola Kategori">
+      <Header title="Pengaturan">
         <UserNav />
       </Header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
-        <CategoriesClient />
+        <SettingsClient />
       </main>
     </MainLayout>
   );

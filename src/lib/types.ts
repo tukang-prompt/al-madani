@@ -1,9 +1,11 @@
+
 export type TransactionType = 'income' | 'expense';
 
 export interface Category {
   id: string;
   name: string;
   type: TransactionType;
+  userId: string;
 }
 
 export interface Transaction {
@@ -16,5 +18,12 @@ export interface Transaction {
   userId: string;
 }
 
+export interface Settings {
+  mosqueName: string;
+  mosqueAddress: string;
+  chairmanName: string;
+  treasurerName: string;
+}
+
 export type TransactionData = Omit<Transaction, 'id' | 'userId'>;
-export type CategoryData = Omit<Category, 'id'>;
+export type CategoryData = Omit<Category, 'id' | 'userId'>;

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Skeleton } from "./ui/skeleton";
 
-const protectedRoutes = ["/", "/transactions", "/categories", "/report"];
+const protectedRoutes = ["/", "/transactions", "/categories", "/report", "/settings"];
 const publicRoutes = ["/login"];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
