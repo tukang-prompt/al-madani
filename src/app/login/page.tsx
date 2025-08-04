@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -26,6 +25,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import Image from 'next/image';
+import PublicReportDownloader from "@/components/public-report-downloader";
 
 const formSchema = z.object({
   email: z.string().email("Format email tidak valid"),
@@ -60,68 +60,73 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-muted/40">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 bg-white rounded-full p-2">
-             <Image src="/logo.png" alt="Logo Masjid" width={64} height={64} className="h-16 w-16" />
-          </div>
-          <CardTitle className="text-2xl font-headline">Login</CardTitle>
-          <CardDescription>
-            Masuk untuk mengakses dasbor keuangan Al Madani
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        {...field}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Loading..." : "Login"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+    <div className="flex h-full w-full items-center justify-center bg-muted/40 p-4">
+        <div className="flex flex-col gap-6 w-full max-w-sm">
+            <Card>
+                <CardHeader className="text-center">
+                <div className="mx-auto mb-4 bg-white rounded-full p-2">
+                    <Image src="/logo.png" alt="Logo Masjid" width={64} height={64} className="h-16 w-16" />
+                </div>
+                <CardTitle className="text-2xl font-headline">Login Pengurus</CardTitle>
+                <CardDescription>
+                    Masuk untuk mengelola dasbor keuangan Al Madani
+                </CardDescription>
+                </CardHeader>
+                <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    {error && (
+                        <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    )}
+                    <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                            <Input
+                                type="email"
+                                {...field}
+                                disabled={isLoading}
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                            <Input
+                                type="password"
+                                {...field}
+                                disabled={isLoading}
+                            />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Loading..." : "Login"}
+                    </Button>
+                    </form>
+                </Form>
+                </CardContent>
+            </Card>
+
+            <PublicReportDownloader />
+
+        </div>
     </div>
   );
 }
