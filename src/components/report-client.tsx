@@ -37,28 +37,64 @@ export default function ReportClient() {
     const totalIncome = transactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0);
     const totalExpense = transactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
     const balance = totalIncome - totalExpense;
+    
+    const chairmanName = "Bapak H. Abdullah";
+    const treasurerName = "Bapak H. Muhammad";
 
+    // Header Laporan
     doc.setFont("helvetica", "bold");
-    doc.text("Laporan Keuangan Masjid Al Madani", 14, 20);
+    doc.setFontSize(16);
+    doc.text("DEWAN KEMAKMURAN MASJID (DKM) AL-MADANI", doc.internal.pageSize.getWidth() / 2, 20, { align: "center" });
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Jl. Raya Teknologi No. 1, Desa Canggih, Kecamatan Modern, Kota Digital", doc.internal.pageSize.getWidth() / 2, 26, { align: "center" });
+    doc.setLineWidth(0.5);
+    doc.line(14, 32, doc.internal.pageSize.getWidth() - 14, 32);
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Laporan Keuangan Periodik", doc.internal.pageSize.getWidth() / 2, 40, { align: 'center'});
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Tanggal Laporan: ${format(new Date(), "d MMMM yyyy", { locale: id })}`, 14, 26);
-    
+    doc.text(`Tanggal Laporan: ${format(new Date(), "d MMMM yyyy", { locale: id })}`, doc.internal.pageSize.getWidth() / 2, 45, { align: 'center'});
+
+
+    // Ringkasan Saldo
     doc.setFontSize(11);
-    doc.text(`Total Pemasukan: ${formatCurrency(totalIncome)}`, 14, 40);
-    doc.text(`Total Pengeluaran: ${formatCurrency(totalExpense)}`, 14, 46);
+    doc.text(`Total Pemasukan: ${formatCurrency(totalIncome)}`, 14, 60);
+    doc.text(`Total Pengeluaran: ${formatCurrency(totalExpense)}`, 14, 66);
     doc.setFont("helvetica", "bold");
-    doc.text(`Saldo Akhir: ${formatCurrency(balance)}`, 14, 52);
+    doc.text(`Saldo Akhir: ${formatCurrency(balance)}`, 14, 72);
     
 
+    // Tabel Transaksi
     (doc as any).autoTable({
-        startY: 60,
+        startY: 80,
         head: [['Tanggal', 'Keterangan', 'Kategori', 'Tipe', 'Jumlah']],
         body: tableData,
         theme: 'striped',
         headStyles: { fillColor: [38, 115, 108] },
         styles: { font: "helvetica", fontSize: 9 },
     });
+    
+    // Tanda Tangan
+    const finalY = (doc as any).lastAutoTable.finalY || 180;
+    const signatureY = finalY + 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.setFontSize(10);
+    doc.text("Mengetahui,", 30, signatureY);
+    doc.text("Mengetahui,", pageWidth - 80, signatureY);
+    doc.text("Ketua DKM,", 30, signatureY + 5);
+    doc.text("Bendahara,", pageWidth - 80, signatureY + 5);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text(chairmanName, 30, signatureY + 25);
+    doc.text(treasurerName, pageWidth - 80, signatureY + 25);
+    doc.setFont("helvetica", "normal");
+    doc.setLineWidth(0.2);
+    doc.line(30, signatureY + 26, 80, signatureY + 26);
+    doc.line(pageWidth - 80, signatureY + 26, pageWidth - 30, signatureY + 26);
+
 
     doc.save("laporan-keuangan-al-madani.pdf");
   };
