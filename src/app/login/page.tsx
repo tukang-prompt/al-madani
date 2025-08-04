@@ -62,7 +62,7 @@ export default function LoginPage() {
     <div className="flex h-full w-full items-center justify-center bg-muted/40">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
+          <div className="mx-auto mb-4 bg-white rounded-full p-2">
              <Image src="/logo.png" alt="Logo Masjid" width={64} height={64} className="h-16 w-16" />
           </div>
           <CardTitle className="text-2xl font-headline">Login</CardTitle>
