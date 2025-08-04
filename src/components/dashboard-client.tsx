@@ -116,9 +116,8 @@ export default function DashboardClient() {
         balanceTitle = `Saldo s/d ${format(prevMonthEnd, "d MMMM yyyy", { locale: id })}`;
 
       } else { // weekly
-        const lastFriday = startOfWeek(now, { weekStartsOn: 5 });
-        startDate = lastFriday.getDay() > new Date().getDay() ? subDays(lastFriday, 7) : lastFriday;
-        endDate = addDays(startDate, 6);
+        startDate = startOfWeek(now, { weekStartsOn: 5 }); // The most recent Friday
+        endDate = addDays(startDate, 6); // The upcoming Thursday
         reportTitle = `Laporan Mingguan (${format(startDate, "d MMM", { locale: id })} - ${format(endDate, "d MMM yyyy", { locale: id })})`;
         
         const prevThursday = subDays(startDate, 1);
