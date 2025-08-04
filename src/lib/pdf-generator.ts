@@ -122,41 +122,31 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
           { content: 'Pemasukan', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
       
+      let incomeTxFound = false;
       incomeCategories.forEach(cat => {
           const categorySubCategories = subCategories.filter(sc => sc.parentId === cat.id);
+          const categoryTransactions = sortedTransactions.filter(tx => categorySubCategories.some(sc => sc.id === tx.subCategoryId));
           
-          if(categorySubCategories.length > 0) {
+          if(categoryTransactions.length > 0) {
             tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
 
-            categorySubCategories.forEach(sc => {
-                const subCategoryTransactions = sortedTransactions.filter(tx => tx.subCategoryId === sc.id);
-                const subCategoryTotal = subCategoryTransactions.reduce((sum, tx) => sum + tx.amount, 0);
-                
-                let subCategoryDescription = sc.name;
-                if (subCategoryTransactions.length > 1) {
-                    const descriptions = subCategoryTransactions.map(tx => tx.description).join(', ');
-                    subCategoryDescription += ` (${descriptions})`;
-                } else if (subCategoryTransactions.length === 1) {
-                    // If only one transaction, use its description if it's not the default date format
-                    const txDescription = subCategoryTransactions[0].description;
-                    const defaultDescription = format(subCategoryTransactions[0].date, "EEEE, d MMMM yyyy", { locale: id });
-                    if (txDescription !== defaultDescription) {
-                        subCategoryDescription += ` (${txDescription})`;
-                    }
-                }
+            categoryTransactions.forEach(tx => {
+                const subCategory = subCategories.find(sc => sc.id === tx.subCategoryId);
+                const description = `${subCategory?.name || ''}${tx.description && tx.description !== format(tx.date, "EEEE, d MMMM yyyy", { locale: id }) ? ` (${tx.description})` : ''}`;
 
                 tableBody.push([
                     '-',
-                    subCategoryDescription,
-                    { content: formatCurrencyPDF(subCategoryTotal), styles: { halign: 'right' } },
+                    description,
+                    { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
                     '-',
                     ''
                 ]);
-                totalIncome += subCategoryTotal;
+                totalIncome += tx.amount;
+                incomeTxFound = true;
             });
           }
       });
-       if (sortedTransactions.filter(tx => tx.type === 'income').length === 0) {
+       if (!incomeTxFound) {
            tableBody.push([
               { content: 'Tidak ada pemasukan periode ini', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
@@ -166,6 +156,7 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
           { content: 'Pengeluaran', colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f0f0f0' } }
       ]);
       
+      let expenseTxFound = false;
       expenseCategories.forEach(cat => {
           const categorySubCategories = subCategories.filter(sc => sc.parentId === cat.id);
           const categoryTransactions = sortedTransactions.filter(tx => categorySubCategories.some(sc => sc.id === tx.subCategoryId));
@@ -173,36 +164,23 @@ export const generatePdf = async ({ reportType, settings, transactions, categori
           if (categoryTransactions.length > 0) {
               tableBody.push([{ content: cat.name, colSpan: 5, styles: { fontStyle: 'bold', halign: 'left' } }]);
               
-              categorySubCategories.forEach(sc => {
-                  const subCategoryTransactions = sortedTransactions.filter(tx => tx.subCategoryId === sc.id);
-                  if (subCategoryTransactions.length > 0) {
-                    const subCategoryTotal = subCategoryTransactions.reduce((sum, tx) => sum + tx.amount, 0);
-                    
-                    let subCategoryDescription = sc.name;
-                    if (subCategoryTransactions.length > 1) {
-                        const descriptions = subCategoryTransactions.map(tx => tx.description).join(', ');
-                        subCategoryDescription += ` (${descriptions})`;
-                    } else if (subCategoryTransactions.length === 1) {
-                        const txDescription = subCategoryTransactions[0].description;
-                        const defaultDescription = format(subCategoryTransactions[0].date, "EEEE, d MMMM yyyy", { locale: id });
-                         if (txDescription !== defaultDescription) {
-                            subCategoryDescription += ` (${txDescription})`;
-                        }
-                    }
+              categoryTransactions.forEach(tx => {
+                  const subCategory = subCategories.find(sc => sc.id === tx.subCategoryId);
+                  const description = `${subCategory?.name || ''}${tx.description && tx.description !== format(tx.date, "EEEE, d MMMM yyyy", { locale: id }) ? ` (${tx.description})` : ''}`;
 
-                    tableBody.push([
-                        '-',
-                        subCategoryDescription,
-                        '-',
-                        { content: formatCurrencyPDF(subCategoryTotal), styles: { halign: 'right' } },
-                        ''
-                    ]);
-                    totalExpense += subCategoryTotal;
-                  }
+                  tableBody.push([
+                      '-',
+                      description,
+                      '-',
+                      { content: formatCurrencyPDF(tx.amount), styles: { halign: 'right' } },
+                      ''
+                  ]);
+                  totalExpense += tx.amount;
+                  expenseTxFound = true;
               });
            }
       });
-      if (sortedTransactions.filter(tx => tx.type === 'expense').length === 0) {
+      if (!expenseTxFound) {
            tableBody.push([
               { content: 'Tidak ada pengeluaran periode ini', colSpan: 5, styles: { halign: 'center', textColor: '#888' } }
           ]);
