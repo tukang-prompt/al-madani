@@ -39,7 +39,7 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { useData } from "@/hooks/use-data";
 import type { Transaction, TransactionType } from "@/lib/types";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Tipe harus dipilih" }),
@@ -59,6 +59,7 @@ interface TransactionDialogProps {
 
 export function TransactionDialog({ open, onOpenChange, transaction }: TransactionDialogProps) {
   const { categories, addTransaction, updateTransaction } = useData();
+  const isOpening = useRef(true);
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
@@ -85,13 +86,18 @@ export function TransactionDialog({ open, onOpenChange, transaction }: Transacti
 
   useEffect(() => {
     if (open) {
+      isOpening.current = true;
       resetForm();
     }
   }, [transaction, open, resetForm]);
   
   useEffect(() => {
     if(open) {
-        form.setValue('categoryId', '');
+      if (isOpening.current) {
+        isOpening.current = false;
+        return;
+      }
+      form.setValue('categoryId', '');
     }
   }, [transactionType, form, open]);
 
