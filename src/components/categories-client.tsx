@@ -37,14 +37,17 @@ export default function CategoriesClient() {
   const [selectedCategory, setSelectedCategory] = useState<Category | undefined>(undefined);
   const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | undefined>(undefined);
   const [parentCategoryForNewSub, setParentCategoryForNewSub] = useState<Category | undefined>(undefined);
+  const [categoryTypeToAdd, setCategoryTypeToAdd] = useState<TransactionType>("income");
 
   const handleAddNewCategory = (type: TransactionType) => {
     setSelectedCategory(undefined);
+    setCategoryTypeToAdd(type);
     setIsCategoryDialogOpen(true);
   };
 
   const handleEditCategory = (category: Category) => {
     setSelectedCategory(category);
+    setCategoryTypeToAdd(category.type);
     setIsCategoryDialogOpen(true);
   };
 
@@ -181,7 +184,7 @@ export default function CategoriesClient() {
         open={isCategoryDialogOpen}
         onOpenChange={setIsCategoryDialogOpen}
         category={selectedCategory}
-        type={selectedCategory?.type || "income"}
+        type={categoryTypeToAdd}
       />
       <SubCategoryDialog
         open={isSubCategoryDialogOpen}
